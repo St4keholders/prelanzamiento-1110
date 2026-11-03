@@ -147,6 +147,32 @@ export async function getResultsPage(date: string, search: string, page: number)
   return { rows, total: rows[0]?.total_count ?? 0 };
 }
 
+export interface DailyWordRow {
+  game_date: string;
+  word: string;
+  category: string;
+}
+
+export async function getDailyWords(): Promise<DailyWordRow[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("daily_words")
+    .select("game_date, word, category")
+    .order("game_date");
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+/** Creates or replaces the word of a day. Callers must check `isWordEditable` first. */
+export async function saveDailyWord(row: DailyWordRow): Promise<DailyWordRow> {
+  const { data, error } = await supabaseAdmin()
+    .from("daily_words")
+    .upsert(row, { onConflict: "game_date" })
+    .select("game_date, word, category")
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 export async function getAllParticipants(): Promise<ParticipantRow[]> {
   const out: ParticipantRow[] = [];
   for (let offset = 0; ; offset += FETCH_CHUNK) {

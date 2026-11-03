@@ -49,6 +49,37 @@ export const adminLoginSchema = z.object({
   password: z.string().min(1).max(200),
 });
 
+/** Uppercases (keeping tildes and Ñ), trims and collapses spaces. */
+export function normalizeWordInput(raw: string): string {
+  return raw.trim().replace(/\s+/g, " ").toLocaleUpperCase("es-CO");
+}
+
+export const dailyWordSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Fecha no válida." }),
+  word: z
+    .string()
+    .transform(normalizeWordInput)
+    .pipe(
+      z
+        .string()
+        .min(2, { message: "Escribe la palabra (mínimo 2 letras)." })
+        .max(60, { message: "La palabra es demasiado larga (máximo 60 caracteres)." })
+        .regex(/^[A-ZÁÉÍÓÚÜÑ][A-ZÁÉÍÓÚÜÑ .\-]*$/, {
+          message: "Usa solo letras (con o sin tilde, Ñ), espacios, guiones o puntos.",
+        }),
+    ),
+  category: z
+    .string()
+    .trim()
+    .transform((v) => v.replace(/\s+/g, " "))
+    .pipe(
+      z
+        .string()
+        .min(2, { message: "Escribe la categoría." })
+        .max(40, { message: "La categoría es demasiado larga (máximo 40 caracteres)." }),
+    ),
+});
+
 /** First validation message, for friendly API errors. */
 export function firstIssue(error: z.ZodError): string {
   return error.issues[0]?.message ?? "Datos no válidos.";
