@@ -110,9 +110,12 @@ async function SummaryContent() {
                       {row ? (
                         row.word
                       ) : (
-                        <span className="rounded-lg bg-danger/10 px-2 py-0.5 text-xs font-bold text-danger">
-                          Sin cargar
-                        </span>
+                        <Link
+                          href="/admin/palabras"
+                          className="rounded-lg bg-danger/10 px-2 py-0.5 text-xs font-bold text-danger hover:bg-danger/20"
+                        >
+                          Sin cargar · cargar →
+                        </Link>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right font-semibold tabular-nums">

@@ -3,10 +3,12 @@ import {
   END_EXCLUSIVE,
   START,
   allGameDates,
+  formatEditDeadline,
   formatLongDate,
   getDayNumber,
   getGameDate,
   getPhase,
+  isWordEditable,
   nextMidnightBogota,
 } from "@/lib/time";
 
@@ -82,5 +84,27 @@ describe("nextMidnightBogota", () => {
 describe("formatLongDate", () => {
   it("formats in Spanish", () => {
     expect(formatLongDate("2026-11-06")).toBe("6 de noviembre de 2026");
+  });
+});
+
+describe("isWordEditable", () => {
+  it("allows editing only before the day starts (Bogotá)", () => {
+    // 3 nov 17:30 → Día 1 (4 nov) y siguientes editables
+    expect(isWordEditable("2026-11-04", bog("2026-11-03T17:30:00"))).toBe(true);
+    expect(isWordEditable("2026-11-04", bog("2026-11-03T23:59:59"))).toBe(true);
+    // 4 nov 00:00 → Día 1 bloqueado, Día 2 editable
+    expect(isWordEditable("2026-11-04", bog("2026-11-04T00:00:00"))).toBe(false);
+    expect(isWordEditable("2026-11-05", bog("2026-11-04T00:00:00"))).toBe(true);
+    expect(isWordEditable("2026-11-05", bog("2026-11-04T23:59:59"))).toBe(true);
+    expect(isWordEditable("2026-11-05", bog("2026-11-05T00:00:00"))).toBe(false);
+    // días pasados y fechas fuera del reto
+    expect(isWordEditable("2026-11-04", bog("2026-11-10T12:00:00"))).toBe(false);
+    expect(isWordEditable("2026-11-15", bog("2026-11-03T12:00:00"))).toBe(false);
+    expect(isWordEditable("2026-11-03", bog("2026-11-01T12:00:00"))).toBe(false);
+  });
+
+  it("formats the edit deadline as the previous day", () => {
+    expect(formatEditDeadline("2026-11-05")).toMatch(/^hasta el 4 (de )?nov\.? a las 11:59 p\. m\.$/);
+    expect(formatEditDeadline("2026-11-04")).toMatch(/^hasta el 3 (de )?nov/);
   });
 });

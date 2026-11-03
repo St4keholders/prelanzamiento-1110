@@ -39,18 +39,15 @@ Construida con **Next.js (App Router + TypeScript + Tailwind CSS)** y **Supabase
 
 ---
 
-## 2. Cómo cargar las 11 palabras del reto en Supabase
+## 2. Cómo cargar las 11 palabras del reto
 
-Las palabras viven únicamente en la tabla `public.daily_words` de Supabase:
+**Desde el panel de administración → Palabras (`/admin/palabras`).** Ahí ves los 11 días; en cada uno escribes la palabra o frase y su categoría y pulsas **Guardar**.
 
-1. Abre el archivo [`supabase/seed-palabras.sql`](./supabase/seed-palabras.sql).
-2. Reemplaza cada `PALABRA_DIA_1` … `PALABRA_DIA_11` y `CATEGORIA_DIA_1` … `CATEGORIA_DIA_11` por la palabra/frase (en MAYÚSCULAS; puede llevar espacios, tildes, `Ñ` o guiones) y su categoría.
-   > ⚠️ **No guardes ni subas a Git** el archivo con las palabras reales si el repositorio es público.
-3. Entra a tu proyecto en [Supabase Dashboard](https://supabase.com/dashboard) → **SQL Editor**, pega el contenido y pulsa **Run**.
-4. Verifica que quedaron las 11 filas ejecutando:
-   ```sql
-   select game_date, word, category from public.daily_words order by game_date;
-   ```
+- La palabra de un día se puede escribir o cambiar **hasta las 11:59 p. m. del día anterior** (hora Colombia). Ej.: la del 5 de noviembre, hasta el 4 de noviembre a las 11:59 p. m.
+- Cuando su día empieza (12:00 a. m.) queda **bloqueada**, y los días pasados también. El servidor lo valida, no solo la pantalla.
+- Se guarda en MAYÚSCULAS automáticamente. Puede llevar espacios, tildes, `Ñ`, guiones o puntos.
+
+> Alternativa por SQL: [`supabase/seed-palabras.sql`](./supabase/seed-palabras.sql) en el **SQL Editor** de Supabase (no tiene el bloqueo por fecha, úsalo con cuidado). ⚠️ No subas a Git ese archivo con las palabras reales.
 
 ---
 
@@ -73,8 +70,9 @@ Las palabras viven únicamente en la tabla `public.daily_words` de Supabase:
 
 1. Abre `https://tu-dominio.vercel.app/admin/login` (o `http://localhost:3000/admin/login` en local).
 2. Ingresa con el usuario y la contraseña configurados en `ADMIN_USER` y `ADMIN_PASSWORD`.
-3. Dentro del panel encontrarás tres vistas:
+3. Dentro del panel encontrarás cuatro vistas:
    - **Resumen (`/admin`)**: total de inscritos y tabla de los 11 días con la palabra del día, cuántos iniciaron, ganadores, derrotas por vidas, derrotas por tiempo y partidas en curso.
+   - **Palabras (`/admin/palabras`)**: cargar o editar la palabra y la categoría de cada día (ver sección 2).
    - **Inscritos (`/admin/inscritos`)**: buscador por nombre, correo o celular, días jugados/ganados y alerta visual cuando un mismo número de celular está registrado con varios correos.
    - **Resultados por día (`/admin/resultados`)**: selector del Día 1 al Día 11, ganadores ordenados por hora de finalización (el primero arriba), buscador y botones de descarga en **Excel (`.xlsx`)** y **CSV (`;` con BOM UTF-8)** tanto del día seleccionado como de todos los días.
 
@@ -82,16 +80,7 @@ Las palabras viven únicamente en la tabla `public.daily_words` de Supabase:
 
 ## 5. Cómo cambiar la palabra de un día si hiciera falta
 
-Desde el **SQL Editor** de Supabase ejecuta:
-
-```sql
-update public.daily_words
-   set word = 'NUEVA PALABRA EN MAYÚSCULAS',
-       category = 'Nueva categoría'
- where game_date = '2026-11-06';
-```
-
-> Recomendación: haz cambios de palabra **antes** de las 12:00 AM (hora Colombia) de ese día para que ningún participante haya iniciado partida con la palabra anterior.
+Desde **Panel → Palabras**, antes de las 11:59 p. m. del día anterior. Una vez empieza el día ya no se puede cambiar desde el panel, para que nadie juegue con una palabra distinta a la de los demás.
 
 ---
 

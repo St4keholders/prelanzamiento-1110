@@ -110,3 +110,23 @@ export function allGameDates(): string[] {
 export function isGameDate(date: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(date) && getDayNumber(date) !== null;
 }
+
+/**
+ * A day's word can be set/edited only BEFORE that day starts in Bogotá
+ * (last chance: 11:59:59 p. m. of the previous day). Today and past days are locked.
+ */
+export function isWordEditable(date: string, now: Date): boolean {
+  return isGameDate(date) && date > getGameDate(now);
+}
+
+const shortDateFormatter = new Intl.DateTimeFormat("es-CO", {
+  timeZone: "UTC",
+  day: "numeric",
+  month: "short",
+});
+
+/** "hasta el 4 nov. a las 11:59 p. m." — last moment to edit the word of `date`. */
+export function formatEditDeadline(date: string): string {
+  const previous = new Date(Date.parse(`${date}T12:00:00Z`) - DAY_MS);
+  return `hasta el ${shortDateFormatter.format(previous)} a las 11:59 p. m.`;
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { participantsSheet, toCsv } from "@/lib/export";
-import { normalizePhone, registerSchema } from "@/lib/validation";
+import { dailyWordSchema, normalizePhone, registerSchema } from "@/lib/validation";
 
 describe("validation", () => {
   it("normalizes phone numbers", () => {
@@ -48,5 +48,33 @@ describe("csv", () => {
     expect(csv).toContain("'=HYPERLINK(1)");
     expect(csv).toContain('"a;b@x.co"');
     expect(csv).toContain(";+573001234567;");
+  });
+});
+
+describe("dailyWordSchema", () => {
+  it("normalizes word and category", () => {
+    const ok = dailyWordSchema.safeParse({
+      date: "2026-11-05",
+      word: "  retención   en la fuente ",
+      category: "  Impuestos  nacionales ",
+    });
+    expect(ok.success && ok.data).toEqual({
+      date: "2026-11-05",
+      word: "RETENCIÓN EN LA FUENTE",
+      category: "Impuestos nacionales",
+    });
+    expect(dailyWordSchema.safeParse({ date: "2026-11-05", word: "año-base", category: "Renta" })
+      .success).toBe(true);
+  });
+
+  it("rejects invalid words", () => {
+    const base = { date: "2026-11-05", category: "Renta" };
+    expect(dailyWordSchema.safeParse({ ...base, word: "" }).success).toBe(false);
+    expect(dailyWordSchema.safeParse({ ...base, word: "IVA 19%" }).success).toBe(false);
+    expect(dailyWordSchema.safeParse({ ...base, word: "-IVA" }).success).toBe(false);
+    expect(dailyWordSchema.safeParse({ ...base, word: "IVA", category: "" }).success).toBe(false);
+    expect(dailyWordSchema.safeParse({ ...base, date: "5/11/2026", word: "IVA" }).success).toBe(
+      false,
+    );
   });
 });
