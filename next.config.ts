@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
     agentFeedback: true,
   },
   cacheComponents: true,
+  // Fonts and mascots read with fs by the share image route (Vercel must bundle them).
+  outputFileTracingIncludes: {
+    "/api/game/share-image": ["./assets/share/**/*"],
+  },
   partialPrefetching: true,
   turbopack: {
     rules: {

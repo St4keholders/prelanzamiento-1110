@@ -1,11 +1,20 @@
 import "server-only";
 import type { Database } from "@/lib/database.types";
 import { getFakeNow, serverNow } from "@/lib/env";
-import type { GameState, LostReason, PlayStatus, PublicPlay, PublicPlayer } from "@/lib/game-types";
+import type {
+  DayResult,
+  GameState,
+  LostReason,
+  PlayResult,
+  PlayStatus,
+  PublicPlay,
+  PublicPlayer,
+} from "@/lib/game-types";
 import { supabaseAdmin } from "@/lib/supabase";
 import {
   LAST_DATE,
   START,
+  allGameDates,
   getDayNumber,
   getGameDate,
   getPhase,
@@ -111,13 +120,60 @@ async function findRunningPlay(pid: string, now: Date): Promise<PlayRow | null> 
   return null;
 }
 
-function buildActiveState(
+/**
+ * Streak row (11 days) and first winner of `date`. Only called once the play is
+ * finished, so it adds no queries while the player is guessing letters.
+ */
+async function getPlayResult(pid: string, date: string): Promise<PlayResult> {
+  const db = supabaseAdmin();
+  const [mine, first] = await Promise.all([
+    db.from("plays").select("game_date, status").eq("participant_id", pid),
+    db
+      .from("plays")
+      .select("participant_id, duration_ms")
+      .eq("game_date", date)
+      .eq("status", "won")
+      .order("finished_at", { ascending: true })
+      .order("id", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  if (mine.error) throw new GameError("internal", mine.error.message, 500);
+  if (first.error) throw new GameError("internal", first.error.message, 500);
+
+  const byDate = new Map(mine.data.map((p) => [p.game_date, p.status as PlayStatus]));
+  const days = allGameDates().map((d) => {
+    let result: DayResult;
+    if (d > date) result = "future";
+    else result = byDate.get(d) ?? "missed";
+    // A past play still marked "playing" already ran out of time (not refreshed yet).
+    if (result === "playing" && d < date) result = "lost";
+    return { date: d, result };
+  });
+
+  let dayWinner: PlayResult["dayWinner"] = null;
+  if (first.data) {
+    const winner = await getParticipant(first.data.participant_id);
+    if (winner) dayWinner = { fullName: winner.full_name, durationMs: first.data.duration_ms };
+  }
+
+  return {
+    days,
+    wonCount: days.filter((d) => d.result === "won").length,
+    dayWinner,
+    isFirstWinner: first.data?.participant_id === pid,
+  };
+}
+
+async function buildActiveState(
+  pid: string,
   now: Date,
   player: PublicPlayer,
   word: WordRow,
   play: PlayRow | null,
-): GameState {
+): Promise<GameState> {
   const today = getGameDate(now);
+  const finished = play !== null && play.status !== "playing";
   return {
     phase: "active",
     serverNow: now.toISOString(),
@@ -134,6 +190,7 @@ function buildActiveState(
     play: play ? toPublicPlay(play, word) : null,
     isToday: word.game_date === today,
     nextWordAt: nextMidnightBogota(now).toISOString(),
+    result: finished ? await getPlayResult(pid, word.game_date) : null,
   };
 }
 
@@ -156,7 +213,7 @@ export async function getGameState(pid: string): Promise<GameState> {
   const running = await findRunningPlay(pid, now);
   if (running) {
     const word = await getWord(running.game_date);
-    if (word) return buildActiveState(now, player, word, running);
+    if (word) return buildActiveState(pid, now, player, word, running);
   }
 
   const phase = getPhase(now);
@@ -179,7 +236,7 @@ export async function getGameState(pid: string): Promise<GameState> {
     };
   }
   const play = await refreshPlay(pid, date);
-  return buildActiveState(now, player, word, play);
+  return buildActiveState(pid, now, player, word, play);
 }
 
 function mapRpcError(message: string): GameError {
@@ -196,7 +253,7 @@ async function stateAfter(pid: string, date: string, play: PlayRow): Promise<Gam
   const [participant, word] = await Promise.all([getParticipant(pid), getWord(date)]);
   if (!participant) throw new GameError("unauthorized", "Sesión no válida.", 401);
   if (!word) throw new GameError("no_word", "La palabra de hoy aún no está disponible.", 409);
-  return buildActiveState(serverNow(), toPublicPlayer(participant), word, play);
+  return buildActiveState(pid, serverNow(), toPublicPlayer(participant), word, play);
 }
 
 export async function startGame(pid: string): Promise<GameState> {
