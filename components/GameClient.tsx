@@ -6,10 +6,10 @@ import { Board } from "@/components/Board";
 import { Countdown } from "@/components/Countdown";
 import { Hearts } from "@/components/Hearts";
 import { Keyboard } from "@/components/Keyboard";
-import { LoseCard } from "@/components/LoseCard";
 import { RegisterForm } from "@/components/RegisterForm";
+import { ShareStep } from "@/components/ShareStep";
 import { Timer } from "@/components/Timer";
-import { WinCard } from "@/components/WinCard";
+import { WaitingView } from "@/components/WaitingView";
 import type { GameState } from "@/lib/game-types";
 import { playSound } from "@/lib/sounds";
 import { TOTAL_DAYS, formatLongDate } from "@/lib/time";
@@ -24,21 +24,29 @@ export function GameClient({ initialState }: GameClientProps) {
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [shakeKey, setShakeKey] = useState(0);
+  /** True right after finishing a play in this visit: show the share image step first. */
+  const [showShare, setShowShare] = useState(false);
 
-  const refreshState = useCallback(async () => {
+  const refreshState = useCallback(async (): Promise<GameState | null> => {
     try {
       const res = await fetch("/api/game/state", { cache: "no-store" });
       if (res.status === 401) {
         setState(null);
-        return;
+        return null;
       }
-      if (!res.ok) return;
+      if (!res.ok) return null;
       const next: GameState = await res.json();
       setState(next);
+      return next;
     } catch {
       // Ignore transient network errors on background refresh.
+      return null;
     }
   }, []);
+
+  const backgroundRefresh = useCallback(() => {
+    void refreshState();
+  }, [refreshState]);
 
   async function handleStart() {
     if (busy) return;
@@ -97,9 +105,11 @@ export function GameClient({ initialState }: GameClientProps) {
       if (next.phase === "active" && !next.noWord && next.play) {
         if (next.play.status === "won") {
           playSound("level-success");
+          setShowShare(true);
         } else if (next.play.status === "lost") {
           setShakeKey((k) => k + 1);
           playSound("game-over");
+          setShowShare(true);
         } else if (next.play.correctLetters.length > prevCorrect) {
           playSound("correct");
         } else if (next.play.wrongLetters.length > prevWrong) {
@@ -120,9 +130,12 @@ export function GameClient({ initialState }: GameClientProps) {
     setErrorMsg(null);
   }
 
-  const handleTimerExpire = useCallback(() => {
+  const handleTimerExpire = useCallback(async () => {
     playSound("game-over");
-    void refreshState();
+    const next = await refreshState();
+    if (next && next.phase === "active" && !next.noWord && next.play?.status === "lost") {
+      setShowShare(true);
+    }
   }, [refreshState]);
 
   return (
@@ -173,38 +186,27 @@ export function GameClient({ initialState }: GameClientProps) {
             nextWordAt={state.nextWordAt}
             onReady={refreshState}
           />
-        ) : state.play?.status === "won" ? (
-          <div className="w-full space-y-2.5">
-            <WinCard player={state.player} day={state.day} play={state.play} />
-            {!state.isToday && (
-              <button
-                type="button"
-                onClick={refreshState}
-                className="w-full rounded-2xl bg-cta px-4 py-3 font-display text-xs font-extrabold uppercase tracking-wide text-white shadow-soft"
-              >
-                Jugar la palabra de hoy
-              </button>
-            )}
-          </div>
-        ) : state.play?.status === "lost" ? (
-          <div className="w-full space-y-2.5">
-            <LoseCard
+        ) : state.play && state.play.status !== "playing" && state.result ? (
+          showShare ? (
+            <ShareStep
+              key={state.play.gameDate}
+              date={state.play.gameDate}
+              dayNumber={state.day.number}
+              won={state.play.status === "won"}
+              onDone={() => setShowShare(false)}
+            />
+          ) : (
+            <WaitingView
               day={state.day}
               play={state.play}
+              result={state.result}
               serverNow={state.serverNow}
               nextWordAt={state.nextWordAt}
-              onNextDayReady={refreshState}
+              isToday={state.isToday}
+              onShowImage={() => setShowShare(true)}
+              onRefresh={backgroundRefresh}
             />
-            {!state.isToday && (
-              <button
-                type="button"
-                onClick={refreshState}
-                className="w-full rounded-2xl bg-cta px-4 py-3 font-display text-xs font-extrabold uppercase tracking-wide text-white shadow-soft"
-              >
-                Jugar la palabra de hoy
-              </button>
-            )}
-          </div>
+          )
         ) : (
           <ActiveGameView
             state={state}

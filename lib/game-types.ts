@@ -37,6 +37,25 @@ export interface PublicDay {
   isLastDay: boolean;
 }
 
+/** Per-day result for the 11-dot streak row. */
+export type DayResult = "won" | "lost" | "missed" | "playing" | "future";
+
+export interface DayWinner {
+  fullName: string;
+  durationMs: number | null;
+}
+
+/** Only present once the player's play of the day is finished (won or lost). */
+export interface PlayResult {
+  days: { date: string; result: DayResult }[];
+  /** Words guessed so far ("Voy X de 11 palabras"). */
+  wonCount: number;
+  /** First person who guessed this day's word (null if nobody yet). */
+  dayWinner: DayWinner | null;
+  /** True when THIS player was the first to guess the word of this day. */
+  isFirstWinner: boolean;
+}
+
 interface BaseState {
   serverNow: string;
   player: PublicPlayer;
@@ -54,6 +73,8 @@ export type GameState =
       /** false when the play shown started yesterday and crossed midnight. */
       isToday: boolean;
       nextWordAt: string;
+      /** Streak + first winner, only when `play` is finished. */
+      result: PlayResult | null;
     });
 
 export interface ApiError {
