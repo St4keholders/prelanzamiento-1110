@@ -21,6 +21,8 @@ import {
   nextMidnightBogota,
 } from "@/lib/time";
 import { buildMask, classifyGuesses } from "@/lib/word";
+import { isMultiWinnerDay, titleStatus } from "@/lib/winner-rules";
+import { getOfficialWinners } from "@/lib/winners";
 
 type PlayRow = Database["public"]["Tables"]["plays"]["Row"];
 type WordRow = Database["public"]["Tables"]["daily_words"]["Row"];
@@ -121,25 +123,16 @@ async function findRunningPlay(pid: string, now: Date): Promise<PlayRow | null> 
 }
 
 /**
- * Streak row (11 days) and first winner of `date`. Only called once the play is
- * finished, so it adds no queries while the player is guessing letters.
+ * Streak row (11 days) and winner of `date` (rules in lib/winner-rules.ts). Only called
+ * once the play is finished, so it adds no queries while the player is guessing letters.
  */
 async function getPlayResult(pid: string, date: string): Promise<PlayResult> {
-  const db = supabaseAdmin();
-  const [mine, first] = await Promise.all([
-    db.from("plays").select("game_date, status").eq("participant_id", pid),
-    db
-      .from("plays")
-      .select("participant_id, duration_ms")
-      .eq("game_date", date)
-      .eq("status", "won")
-      .order("finished_at", { ascending: true })
-      .order("id", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
+  const multiWinnerDay = isMultiWinnerDay(date);
+  const [mine, winners] = await Promise.all([
+    supabaseAdmin().from("plays").select("game_date, status").eq("participant_id", pid),
+    multiWinnerDay ? Promise.resolve(null) : getOfficialWinners(),
   ]);
   if (mine.error) throw new GameError("internal", mine.error.message, 500);
-  if (first.error) throw new GameError("internal", first.error.message, 500);
 
   const byDate = new Map(mine.data.map((p) => [p.game_date, p.status as PlayStatus]));
   const days = allGameDates().map((d) => {
@@ -151,17 +144,17 @@ async function getPlayResult(pid: string, date: string): Promise<PlayResult> {
     return { date: d, result };
   });
 
-  let dayWinner: PlayResult["dayWinner"] = null;
-  if (first.data) {
-    const winner = await getParticipant(first.data.participant_id);
-    if (winner) dayWinner = { fullName: winner.full_name, durationMs: first.data.duration_ms };
-  }
+  const won = byDate.get(date) === "won";
+  const status = titleStatus(pid, date, won, winners ?? new Map());
+  const official = winners?.get(date) ?? null;
 
   return {
     days,
     wonCount: days.filter((d) => d.result === "won").length,
-    dayWinner,
-    isFirstWinner: first.data?.participant_id === pid,
+    multiWinnerDay,
+    dayWinner: official ? { fullName: official.fullName, durationMs: official.durationMs } : null,
+    isDayWinner: status.kind === "multi" || status.kind === "winner",
+    titledDate: status.kind === "already" ? status.titleDate : null,
   };
 }
 

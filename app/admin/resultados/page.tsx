@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { AdminShell } from "@/components/AdminShell";
 import { PAGE_SIZE, getResultsPage } from "@/lib/admin";
+import { type TitleStatus, isMultiWinnerDay, titleStatus } from "@/lib/winner-rules";
+import { byEmail, getOfficialWinners } from "@/lib/winners";
 import { serverNow } from "@/lib/env";
 import { reasonLabel, statusLabel } from "@/lib/export";
 import { isAdmin } from "@/lib/session";
@@ -30,7 +32,12 @@ async function ResultadosContent({ searchParams }: SearchProps) {
   const q = (params.q ?? "").trim();
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
 
-  const { rows, total } = await getResultsPage(selectedDate, q, page);
+  const [{ rows, total }, official] = await Promise.all([
+    getResultsPage(selectedDate, q, page),
+    getOfficialWinners(),
+  ]);
+  const winners = byEmail(official);
+  const dayWinner = official.get(selectedDate);
   const totalPages = Math.max(1, Math.ceil(Number(total) / PAGE_SIZE));
   const dates = allGameDates();
 
@@ -43,7 +50,14 @@ async function ResultadosContent({ searchParams }: SearchProps) {
               Resultados · Día {getDayNumber(selectedDate)} ({selectedDate})
             </h1>
             <p className="text-sm text-muted">
-              Ganadores ordenados por hora de finalización (el primero que terminó aparece arriba).
+              Ordenados por hora de finalización (el primero que terminó aparece arriba).
+            </p>
+            <p className="mt-1 text-sm font-bold text-primary-dark">
+              {isMultiWinnerDay(selectedDate)
+                ? "Día de varios ganadores: todos los que adivinaron ganan (+25 nueces)."
+                : dayWinner
+                  ? `🏆 Ganador del día: ${dayWinner.fullName} (${dayWinner.email})`
+                  : "Todavía no hay ganador para este día."}
             </p>
           </div>
 
@@ -160,7 +174,12 @@ async function ResultadosContent({ searchParams }: SearchProps) {
                       <td className="px-3.5 py-3 font-mono text-xs">{r.email}</td>
                       <td className="px-3.5 py-3 font-mono text-xs">{r.phone}</td>
                       <td className="px-3.5 py-3">
-                        <StatusBadge status={r.status} />
+                        <div className="flex flex-col items-start gap-1">
+                          <StatusBadge status={r.status} />
+                          <TitleBadge
+                            status={titleStatus(r.email, r.game_date, r.status === "won", winners)}
+                          />
+                        </div>
                       </td>
                       <td className="px-3.5 py-3 text-xs text-muted">
                         {reasonLabel(r.lost_reason) || "—"}
@@ -220,6 +239,24 @@ async function ResultadosContent({ searchParams }: SearchProps) {
       </div>
     </AdminShell>
   );
+}
+
+function TitleBadge({ status }: { status: TitleStatus }) {
+  if (status.kind === "winner" || status.kind === "multi") {
+    return (
+      <span className="rounded-lg bg-[#F2C850] px-2 py-0.5 text-[11px] font-extrabold text-primary-dark">
+        🏆 Ganador del día
+      </span>
+    );
+  }
+  if (status.kind === "already") {
+    return (
+      <span className="rounded-lg bg-warm px-2 py-0.5 text-[11px] font-bold text-muted">
+        Ya ganó el Día {getDayNumber(status.titleDate)}
+      </span>
+    );
+  }
+  return null;
 }
 
 function StatusBadge({ status }: { status: string }) {

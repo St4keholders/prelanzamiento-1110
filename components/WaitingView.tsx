@@ -5,7 +5,8 @@ import { useEffect } from "react";
 import { Countdown } from "@/components/Countdown";
 import { StreakDots } from "@/components/StreakDots";
 import type { PlayResult, PublicDay, PublicPlay } from "@/lib/game-types";
-import { TOTAL_DAYS, formatDuration, formatLongDate } from "@/lib/time";
+import { NUECES_BONUS_TEXT } from "@/lib/share-text";
+import { TOTAL_DAYS, formatDuration, formatLongDate, getDayNumber } from "@/lib/time";
 
 const REFRESH_MS = 60_000;
 
@@ -39,8 +40,10 @@ export function WaitingView({
 
   const won = play.status === "won";
   const title = won
-    ? result.isFirstWinner
-      ? "¡Ganaste el día!"
+    ? result.isDayWinner
+      ? result.multiWinnerDay
+        ? `¡Ganaste el Día ${day.number}!`
+        : "¡Ganaste el día!"
       : "¡Lo lograste!"
     : play.lostReason === "timeout"
       ? "Se acabó el tiempo"
@@ -81,23 +84,30 @@ export function WaitingView({
         </div>
       </div>
 
-      {/* Anuncio del primer ganador del día */}
-      {result.isFirstWinner ? (
-        <p
-          role="status"
-          className="rounded-2xl border-2 border-[#E2B73A] bg-[#FDF3D2] px-4 py-3 text-center text-sm font-bold text-primary-dark"
-        >
-          🏆 ¡Fuiste la primera persona en adivinar la palabra {isToday ? "de hoy" : `del Día ${day.number}`}!
+      {/* Premio / anuncio del ganador del día */}
+      {result.multiWinnerDay ? (
+        result.isDayWinner && (
+          <p role="status" className="rounded-2xl border-2 border-[#E2B73A] bg-[#FDF3D2] px-4 py-3 text-center text-sm font-bold text-primary-dark">
+            🎁 ¡Todos los que adivinan el Día {day.number} ganan! {NUECES_BONUS_TEXT}
+          </p>
+        )
+      ) : result.isDayWinner ? (
+        <p role="status" className="rounded-2xl border-2 border-[#E2B73A] bg-[#FDF3D2] px-4 py-3 text-center text-sm font-bold text-primary-dark">
+          🏆 ¡Eres la persona ganadora {isToday ? "de hoy" : `del Día ${day.number}`}!
         </p>
       ) : result.dayWinner ? (
-        <p
-          role="status"
-          className="rounded-2xl border-2 border-[#E2B73A] bg-[#FDF3D2] px-4 py-3 text-center text-sm font-bold text-primary-dark"
-        >
+        <p role="status" className="rounded-2xl border-2 border-[#E2B73A] bg-[#FDF3D2] px-4 py-3 text-center text-sm font-bold text-primary-dark">
           🏆 {result.dayWinner.fullName} ganó {isToday ? "hoy" : `el Día ${day.number}`}
           {result.dayWinner.durationMs != null && ` en ${formatDuration(result.dayWinner.durationMs)}`}.
         </p>
       ) : null}
+
+      {won && result.titledDate && (
+        <p className="rounded-2xl border border-line bg-white px-4 py-2.5 text-center text-xs font-semibold text-ink">
+          Ya ganaste el Día {getDayNumber(result.titledDate)}. Cada persona puede ser ganadora una
+          sola vez, así que el título de este día es para otra persona. ¡Igual suma a tu racha!
+        </p>
+      )}
 
       <div className="rounded-3xl border border-line bg-white p-4 shadow-soft">
         <StreakDots days={result.days} wonCount={result.wonCount} />
