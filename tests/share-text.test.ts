@@ -7,11 +7,12 @@ import {
   revengeText,
   shareTitle,
   shareVariant,
+  winnerBadge,
 } from "@/lib/share-text";
 
 describe("share text", () => {
   it("picks the right variant", () => {
-    expect(shareVariant("won", null, true)).toBe("first");
+    expect(shareVariant("won", null, true)).toBe("winner");
     expect(shareVariant("won", null, false)).toBe("won");
     expect(shareVariant("lost", "errors", false)).toBe("lost-errors");
     expect(shareVariant("lost", "timeout", false)).toBe("lost-timeout");
@@ -20,7 +21,10 @@ describe("share text", () => {
   it("formats titles and labels", () => {
     expect(dayPillText(1, "2026-11-04")).toBe("DÍA 1 DE 11 · 4 NOV 2026");
     expect(dayPillText(11, "2026-11-14")).toBe("DÍA 11 DE 11 · 14 NOV 2026");
-    expect(shareTitle("first")).toBe("¡Gané el día!");
+    expect(shareTitle("winner")).toBe("¡Gané el día!");
+    expect(shareTitle("winner", true, 1)).toBe("¡Gané el día 1!");
+    expect(winnerBadge(true)).toBe("+25 NUECES EN LA APP 1110");
+    expect(winnerBadge(false)).toBe("GANADOR DEL DÍA");
     expect(shareTitle("won")).toBe("¡Lo logré!");
     expect(shareTitle("lost-errors")).toBe("Hoy no adiviné");
     expect(shareTitle("lost-timeout")).toBe("Se me acabó el tiempo");

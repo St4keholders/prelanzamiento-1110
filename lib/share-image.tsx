@@ -6,6 +6,7 @@ import type { DayResult } from "@/lib/game-types";
 import {
   type ShareVariant,
   dayPillText,
+  winnerBadge,
   livesLeftText,
   lostLivesText,
   progressText,
@@ -19,6 +20,8 @@ export const SHARE_HEIGHT = 1920;
 
 export interface ShareImageData {
   variant: ShareVariant;
+  /** Día 1: everyone who guesses wins (+25 nueces bonus). */
+  multiWinnerDay: boolean;
   fullName: string;
   dayNumber: number;
   date: string;
@@ -131,9 +134,10 @@ function Hearts({ left, max, full, empty }: { left: number; max: number; full: s
 
 export async function renderShareImage(data: ShareImageData): Promise<ImageResponse> {
   const assets = await loadAssets();
-  const won = data.variant === "first" || data.variant === "won";
+  const won = data.variant === "winner" || data.variant === "won";
+  const isWinner = data.variant === "winner";
   const t = won ? GREEN : CREAM;
-  const title = shareTitle(data.variant);
+  const title = shareTitle(data.variant, data.multiWinnerDay, data.dayNumber);
   const titleSize = title.length <= 10 ? 140 : title.length <= 14 ? 120 : 112;
 
   return new ImageResponse(
@@ -176,22 +180,28 @@ export async function renderShareImage(data: ShareImageData): Promise<ImageRespo
           </div>
         </div>
 
-        {data.variant === "first" && (
-          <div
-            style={{
-              display: "flex",
-              alignSelf: "flex-start",
-              marginTop: 64,
-              border: `4px solid ${GREEN.pillBg}`,
-              color: GREEN.pillBg,
-              fontSize: 34,
-              fontWeight: 800,
-              letterSpacing: 3,
-              padding: "12px 30px",
-              borderRadius: 999,
-            }}
-          >
-            PRIMERO EN ADIVINAR HOY
+        {isWinner && (
+          <div style={{ display: "flex", flexDirection: "column", marginTop: 64, gap: 14 }}>
+            <div
+              style={{
+                display: "flex",
+                alignSelf: "flex-start",
+                border: `4px solid ${GREEN.pillBg}`,
+                color: GREEN.pillBg,
+                fontSize: 34,
+                fontWeight: 800,
+                letterSpacing: 3,
+                padding: "12px 30px",
+                borderRadius: 999,
+              }}
+            >
+              {winnerBadge(data.multiWinnerDay)}
+            </div>
+            {data.multiWinnerDay && (
+              <div style={{ display: "flex", fontSize: 30, fontWeight: 600, color: GREEN.title }}>
+                La app 1110 sale el 11 de noviembre
+              </div>
+            )}
           </div>
         )}
 
@@ -199,7 +209,7 @@ export async function renderShareImage(data: ShareImageData): Promise<ImageRespo
         <div
           style={{
             display: "flex",
-            marginTop: data.variant === "first" ? 36 : 70,
+            marginTop: isWinner ? 36 : 70,
             fontSize: titleSize,
             lineHeight: 1.05,
             fontWeight: 800,

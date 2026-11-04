@@ -3,13 +3,18 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { AdminShell } from "@/components/AdminShell";
 import { getSummary } from "@/lib/admin";
+import { isMultiWinnerDay } from "@/lib/winner-rules";
+import { getOfficialWinners } from "@/lib/winners";
 import { isAdmin } from "@/lib/session";
 import { allGameDates, getDayNumber } from "@/lib/time";
 
 async function SummaryContent() {
   if (!(await isAdmin())) redirect("/admin/login");
 
-  const { totalParticipants, days } = await getSummary();
+  const [{ totalParticipants, days }, winners] = await Promise.all([
+    getSummary(),
+    getOfficialWinners(),
+  ]);
   const byDate = new Map(days.map((d) => [d.game_date, d]));
   const allDates = allGameDates();
 
@@ -80,7 +85,7 @@ async function SummaryContent() {
 
         {/* Tabla de los 11 días */}
         <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-soft">
-          <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[900px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-line bg-warm text-xs font-bold uppercase tracking-wider text-muted">
                 <th className="px-4 py-3">Día</th>
@@ -88,7 +93,8 @@ async function SummaryContent() {
                 <th className="px-4 py-3">Categoría</th>
                 <th className="px-4 py-3">Palabra del día</th>
                 <th className="px-4 py-3 text-right">Iniciaron</th>
-                <th className="px-4 py-3 text-right">Ganadores</th>
+                <th className="px-4 py-3 text-right">Adivinaron</th>
+                <th className="px-4 py-3">Ganador del día</th>
                 <th className="px-4 py-3 text-right">Perdieron (vidas)</th>
                 <th className="px-4 py-3 text-right">Perdieron (tiempo)</th>
                 <th className="px-4 py-3 text-right">En curso</th>
@@ -123,6 +129,15 @@ async function SummaryContent() {
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-primary tabular-nums">
                       {Number(row?.won ?? 0)}
+                    </td>
+                    <td className="px-4 py-3 text-xs font-bold text-primary-dark">
+                      {isMultiWinnerDay(date) ? (
+                        <span>Todos los que adivinaron</span>
+                      ) : winners.get(date) ? (
+                        <span>🏆 {winners.get(date)?.fullName}</span>
+                      ) : (
+                        <span className="font-medium text-muted">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right text-danger tabular-nums">
                       {Number(row?.lost_errors ?? 0)}

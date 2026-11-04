@@ -69,7 +69,14 @@ export function participantsSheet(rows: ParticipantLike[]): Sheet {
   };
 }
 
-export function resultsSheet(rows: ResultLike[], name = "Resultados"): Sheet {
+/** Label for the "Ganador del día" column (computed by the caller with the winner rules). */
+export type WinnerLabel = (row: ResultLike) => string;
+
+export function resultsSheet(
+  rows: ResultLike[],
+  name = "Resultados",
+  winnerLabel: WinnerLabel = () => "",
+): Sheet {
   return {
     name,
     columns: [
@@ -86,6 +93,7 @@ export function resultsSheet(rows: ResultLike[], name = "Resultados"): Sheet {
       "Hora de fin (Colombia)",
       "Duración",
       "Código de ganador",
+      "Ganador del día",
     ],
     rows: rows.map((r) => [
       getDayNumber(r.game_date) ?? "",
@@ -101,6 +109,7 @@ export function resultsSheet(rows: ResultLike[], name = "Resultados"): Sheet {
       formatDateTimeBogota(r.finished_at),
       formatDuration(r.duration_ms),
       r.win_code ?? "",
+      winnerLabel(r),
     ]),
   };
 }

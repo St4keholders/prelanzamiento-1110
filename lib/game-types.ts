@@ -50,10 +50,14 @@ export interface PlayResult {
   days: { date: string; result: DayResult }[];
   /** Words guessed so far ("Voy X de 11 palabras"). */
   wonCount: number;
-  /** First person who guessed this day's word (null if nobody yet). */
+  /** Día 1 (4 nov): everyone who guesses is a winner (+25 nueces bonus). */
+  multiWinnerDay: boolean;
+  /** Official winner of this day (null on Día 1 or if nobody has won yet). */
   dayWinner: DayWinner | null;
-  /** True when THIS player was the first to guess the word of this day. */
-  isFirstWinner: boolean;
+  /** True when THIS player is a winner of this day (on Día 1: whoever guessed). */
+  isDayWinner: boolean;
+  /** Date of the title this player already holds from an earlier day (blocks new titles). */
+  titledDate: string | null;
 }
 
 interface BaseState {

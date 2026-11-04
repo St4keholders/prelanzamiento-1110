@@ -26,7 +26,12 @@ export async function GET() {
 
     const { day, play, result, player } = state;
     return await renderShareImage({
-      variant: shareVariant(play.status === "won" ? "won" : "lost", play.lostReason, result.isFirstWinner),
+      variant: shareVariant(
+        play.status === "won" ? "won" : "lost",
+        play.lostReason,
+        result.isDayWinner,
+      ),
+      multiWinnerDay: result.multiWinnerDay,
       fullName: player.fullName,
       dayNumber: day.number,
       date: day.date,
