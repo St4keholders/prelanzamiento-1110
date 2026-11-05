@@ -3,6 +3,7 @@ import {
   END_EXCLUSIVE,
   START,
   allGameDates,
+  formatClockSeconds,
   formatEditDeadline,
   formatLongDate,
   getDayNumber,
@@ -106,5 +107,13 @@ describe("isWordEditable", () => {
   it("formats the edit deadline as the previous day", () => {
     expect(formatEditDeadline("2026-11-05")).toMatch(/^hasta el 4 (de )?nov\.? a las 11:59 p\. m\.$/);
     expect(formatEditDeadline("2026-11-04")).toMatch(/^hasta el 3 (de )?nov/);
+  });
+});
+
+describe("formatClockSeconds", () => {
+  it("formats the stopped clock", () => {
+    expect(formatClockSeconds(60)).toBe("1:00");
+    expect(formatClockSeconds(120)).toBe("2:00");
+    expect(formatClockSeconds(9)).toBe("0:09");
   });
 });

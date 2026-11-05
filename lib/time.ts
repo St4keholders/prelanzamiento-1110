@@ -9,6 +9,8 @@ export const END_EXCLUSIVE = new Date("2026-11-15T05:00:00Z"); // 2026-11-15 00:
 export const FIRST_DATE = "2026-11-04";
 export const LAST_DATE = "2026-11-14";
 export const TOTAL_DAYS = 11;
+/** Seconds per play from Día 2 on (Día 1, 4 nov, was played with 120 s). */
+export const TIME_LIMIT_SECONDS = 60;
 
 const BOGOTA_OFFSET_MS = 5 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -89,6 +91,12 @@ const dateTimeFormatter = new Intl.DateTimeFormat("es-CO", {
 export function formatDateTimeBogota(iso: string | null | undefined): string {
   if (!iso) return "";
   return dateTimeFormatter.format(new Date(iso));
+}
+
+/** "2:00" / "1:00" clock style for a number of seconds. */
+export function formatClockSeconds(totalSeconds: number): string {
+  const safe = Math.max(0, Math.ceil(totalSeconds));
+  return `${Math.floor(safe / 60)}:${(safe % 60).toString().padStart(2, "0")}`;
 }
 
 /** "1:23" or "45 s" style human duration. */
