@@ -6,7 +6,13 @@ import { Countdown } from "@/components/Countdown";
 import { StreakDots } from "@/components/StreakDots";
 import type { PlayResult, PublicDay, PublicPlay } from "@/lib/game-types";
 import { NUECES_BONUS_TEXT } from "@/lib/share-text";
-import { TOTAL_DAYS, formatDuration, formatLongDate, getDayNumber } from "@/lib/time";
+import {
+  TOTAL_DAYS,
+  formatClockSeconds,
+  formatDuration,
+  formatLongDate,
+  getDayNumber,
+} from "@/lib/time";
 
 const REFRESH_MS = 60_000;
 
@@ -51,7 +57,7 @@ export function WaitingView({
   const subtitle = won
     ? `Adivinaste la palabra en ${formatDuration(play.durationMs)}.`
     : play.lostReason === "timeout"
-      ? "Se agotaron los 2 minutos."
+      ? `Se agotó el tiempo (${formatClockSeconds(day.timeLimitSeconds)}).`
       : "Te quedaste sin vidas.";
 
   return (

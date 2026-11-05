@@ -1,6 +1,6 @@
 # Ahorcadito Diario · 11Diez (4 al 14 de noviembre de 2026)
 
-Aplicación web para la campaña **Ahorcadito Diario 11Diez**: 11 días seguidos (del **4 al 14 de noviembre de 2026**, hora oficial de Colombia `America/Bogota`, UTC−5) con una palabra secreta por día, un único intento por persona por día, **3 vidas** y **120 segundos** por partida.
+Aplicación web para la campaña **Ahorcadito Diario 11Diez**: 11 días seguidos (del **4 al 14 de noviembre de 2026**, hora oficial de Colombia `America/Bogota`, UTC−5) con una palabra secreta por día, un único intento por persona por día, **3 vidas** y **60 segundos** por partida (el Día 1, 4 de noviembre, se jugó con 120 segundos).
 
 Construida con **Next.js (App Router + TypeScript + Tailwind CSS)** y **Supabase** consumido exclusivamente desde el servidor (`SUPABASE_SECRET_KEY`). La palabra del día **nunca** viaja al navegador.
 

@@ -12,7 +12,7 @@ import { Timer } from "@/components/Timer";
 import { WaitingView } from "@/components/WaitingView";
 import type { GameState } from "@/lib/game-types";
 import { playSound } from "@/lib/sounds";
-import { TOTAL_DAYS, formatLongDate } from "@/lib/time";
+import { TOTAL_DAYS, formatClockSeconds, formatLongDate } from "@/lib/time";
 import type { Letter } from "@/lib/word";
 
 interface GameClientProps {
@@ -402,7 +402,7 @@ function ActiveGameView({
               onClick={onStart}
               className="rounded-2xl bg-cta px-6 py-2.5 font-display text-sm font-extrabold uppercase tracking-wide text-white shadow-soft transition hover:brightness-95 active:translate-y-0.5 disabled:opacity-60"
             >
-              {busy ? "Iniciando..." : "▶ Iniciar reloj (2:00)"}
+              {busy ? "Iniciando..." : `▶ Iniciar reloj (${formatClockSeconds(day.timeLimitSeconds)})`}
             </button>
             <p className="text-[11px] font-medium text-muted">
               El tiempo arranca al pulsar <strong>Iniciar</strong> o al tocar tu primera letra.

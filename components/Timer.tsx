@@ -7,7 +7,7 @@ interface TimerProps {
   deadlineAt: string | null;
   /** Server timestamp returned with the state, to compensate device clock skew. */
   serverNow: string;
-  /** Default seconds when stopped (120). */
+  /** Seconds shown while stopped (the day's limit, e.g. 60). */
   timeLimitSeconds: number;
   /** Running only while status === 'playing'. */
   running: boolean;

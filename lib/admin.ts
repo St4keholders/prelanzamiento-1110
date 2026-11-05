@@ -2,6 +2,7 @@ import "server-only";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { env, serverNow } from "@/lib/env";
 import { supabaseAdmin } from "@/lib/supabase";
+import { TIME_LIMIT_SECONDS } from "@/lib/time";
 
 // ---------------------------------------------------------------------------
 // Credentials & rate limit
@@ -166,7 +167,7 @@ export async function getDailyWords(): Promise<DailyWordRow[]> {
 export async function saveDailyWord(row: DailyWordRow): Promise<DailyWordRow> {
   const { data, error } = await supabaseAdmin()
     .from("daily_words")
-    .upsert(row, { onConflict: "game_date" })
+    .upsert({ ...row, time_limit_seconds: TIME_LIMIT_SECONDS }, { onConflict: "game_date" })
     .select("game_date, word, category")
     .single();
   if (error) throw new Error(error.message);
