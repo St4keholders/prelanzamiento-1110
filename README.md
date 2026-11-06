@@ -1,6 +1,6 @@
 # Ahorcadito Diario · 11Diez (4 al 14 de noviembre de 2026)
 
-Aplicación web para la campaña **Ahorcadito Diario 11Diez**: 11 días seguidos (del **4 al 14 de noviembre de 2026**, hora oficial de Colombia `America/Bogota`, UTC−5) con una palabra secreta por día, un único intento por persona por día, **3 vidas** y **60 segundos** por partida (el Día 1, 4 de noviembre, se jugó con 120 segundos).
+Aplicación web para la campaña **Ahorcadito Diario 11Diez**: 11 días seguidos (del **4 al 14 de noviembre de 2026**, hora oficial de Colombia `America/Bogota`, UTC−5) con una palabra secreta por día, un único intento por persona por día, **3 vidas** y un cronómetro que se define por día en el panel (**1:30 por defecto**; el 4 nov fue de 2:00 y el 5 y 6 nov de 1:00).
 
 Construida con **Next.js (App Router + TypeScript + Tailwind CSS)** y **Supabase** consumido exclusivamente desde el servidor (`SUPABASE_SECRET_KEY`). La palabra del día **nunca** viaja al navegador.
 
@@ -80,7 +80,7 @@ Construida con **Next.js (App Router + TypeScript + Tailwind CSS)** y **Supabase
 
 ## 5. Cómo cambiar la palabra de un día si hiciera falta
 
-Desde **Panel → Palabras**, antes de las 11:59 p. m. del día anterior. Una vez empieza el día ya no se puede cambiar desde el panel, para que nadie juegue con una palabra distinta a la de los demás.
+Desde **Panel → Palabras**, antes de las 11:59 p. m. del día anterior. Ahí mismo se elige el **tiempo** de ese día (de 0:30 a 3:00; por defecto 1:30). Una vez empieza el día ya no se puede cambiar desde el panel, para que nadie juegue con una palabra distinta a la de los demás.
 
 ---
 

@@ -11,6 +11,7 @@ import {
   formatLongDate,
   getDayNumber,
   isWordEditable,
+  TIME_LIMIT_SECONDS,
 } from "@/lib/time";
 
 async function WordsContent() {
@@ -26,8 +27,9 @@ async function WordsContent() {
         <div>
           <h1 className="font-display text-2xl font-extrabold text-primary-dark">Palabras del reto</h1>
           <p className="text-sm text-muted">
-            La palabra de cada día se puede escribir o cambiar hasta las 11:59 p. m. del día anterior
-            (hora Colombia). Cuando su día empieza, queda bloqueada.
+            La palabra, la categoría y el tiempo de cada día se pueden cambiar hasta las 11:59 p. m.
+            del día anterior (hora Colombia). Cuando su día empieza, quedan bloqueados. Tiempo por
+            defecto: 1:30.
           </p>
         </div>
 
@@ -42,6 +44,7 @@ async function WordsContent() {
                 longDate={formatLongDate(date)}
                 initialWord={row?.word ?? ""}
                 initialCategory={row?.category ?? ""}
+                initialTime={row?.time_limit_seconds ?? TIME_LIMIT_SECONDS}
                 editable={isWordEditable(date, now)}
                 deadlineLabel={formatEditDeadline(date)}
               />

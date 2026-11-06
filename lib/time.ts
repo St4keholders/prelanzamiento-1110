@@ -9,8 +9,12 @@ export const END_EXCLUSIVE = new Date("2026-11-15T05:00:00Z"); // 2026-11-15 00:
 export const FIRST_DATE = "2026-11-04";
 export const LAST_DATE = "2026-11-14";
 export const TOTAL_DAYS = 11;
-/** Seconds per play from Día 2 on (Día 1, 4 nov, was played with 120 s). */
-export const TIME_LIMIT_SECONDS = 60;
+/** Default seconds per play for new/edited words (each day can override it in the panel). */
+export const TIME_LIMIT_SECONDS = 90;
+/** Choices offered in the panel (15 s steps, 30 s to 3 min). */
+export const TIME_LIMIT_OPTIONS = [30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180] as const;
+export const MIN_TIME_LIMIT = 30;
+export const MAX_TIME_LIMIT = 180;
 
 const BOGOTA_OFFSET_MS = 5 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;

@@ -2,7 +2,6 @@ import "server-only";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { env, serverNow } from "@/lib/env";
 import { supabaseAdmin } from "@/lib/supabase";
-import { TIME_LIMIT_SECONDS } from "@/lib/time";
 
 // ---------------------------------------------------------------------------
 // Credentials & rate limit
@@ -152,12 +151,13 @@ export interface DailyWordRow {
   game_date: string;
   word: string;
   category: string;
+  time_limit_seconds: number;
 }
 
 export async function getDailyWords(): Promise<DailyWordRow[]> {
   const { data, error } = await supabaseAdmin()
     .from("daily_words")
-    .select("game_date, word, category")
+    .select("game_date, word, category, time_limit_seconds")
     .order("game_date");
   if (error) throw new Error(error.message);
   return data ?? [];
@@ -167,8 +167,8 @@ export async function getDailyWords(): Promise<DailyWordRow[]> {
 export async function saveDailyWord(row: DailyWordRow): Promise<DailyWordRow> {
   const { data, error } = await supabaseAdmin()
     .from("daily_words")
-    .upsert({ ...row, time_limit_seconds: TIME_LIMIT_SECONDS }, { onConflict: "game_date" })
-    .select("game_date, word, category")
+    .upsert(row, { onConflict: "game_date" })
+    .select("game_date, word, category, time_limit_seconds")
     .single();
   if (error) throw new Error(error.message);
   return data;
