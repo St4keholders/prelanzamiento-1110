@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  bonusShareTexts,
   dayPillText,
   livesLeftText,
   lostLivesText,
@@ -37,5 +38,15 @@ describe("share text", () => {
     expect(revengeText(true)).toBe("Fue el último día del reto.");
     expect(progressText(0)).toBe("Voy 0 de 11 palabras");
     expect(progressText(1)).toBe("Voy 1 de 11 palabras");
+  });
+});
+
+describe("bonus share texts", () => {
+  it("formats the bonus pill and title", () => {
+    expect(bonusShareTexts("2026-11-06")).toEqual({
+      pill: "RONDA BONUS · 6 NOV 2026",
+      title: "¡Gané la ronda bonus!",
+      badge: "GANADOR RONDA BONUS",
+    });
   });
 });

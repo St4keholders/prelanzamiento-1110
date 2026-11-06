@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 
 interface ShareStepProps {
-  /** Date of the finished play (only used to name the file / bust the cache). */
-  date: string;
-  dayNumber: number;
+  /** URL of the PNG to show/share. */
+  src: string;
+  /** Downloaded / shared file name. */
+  fileName: string;
   won: boolean;
   /** Called after sharing, saving or skipping. */
   onDone: () => void;
@@ -17,7 +18,7 @@ type Loaded = { file: File; url: string; canShare: boolean };
  * Shows the result image (generated on the server) with buttons to share it through the
  * phone's share sheet (Instagram, WhatsApp, etc.), save it, or skip.
  */
-export function ShareStep({ date, dayNumber, won, onDone }: ShareStepProps) {
+export function ShareStep({ src, fileName, won, onDone }: ShareStepProps) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [failed, setFailed] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -26,14 +27,14 @@ export function ShareStep({ date, dayNumber, won, onDone }: ShareStepProps) {
   useEffect(() => {
     let cancelled = false;
     let objectUrl: string | null = null;
-    fetch(`/api/game/share-image?d=${date}`, { cache: "no-store" })
+    fetch(src, { cache: "no-store" })
       .then((res) => {
         if (!res.ok) throw new Error(String(res.status));
         return res.blob();
       })
       .then((blob) => {
         if (cancelled) return;
-        const file = new File([blob], `ahorcadito-11diez-dia-${dayNumber}.png`, {
+        const file = new File([blob], fileName, {
           type: "image/png",
         });
         objectUrl = URL.createObjectURL(blob);
@@ -50,7 +51,7 @@ export function ShareStep({ date, dayNumber, won, onDone }: ShareStepProps) {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [date, dayNumber]);
+  }, [src, fileName]);
 
   async function handleShare() {
     if (!loaded) return;

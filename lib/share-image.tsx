@@ -31,6 +31,8 @@ export interface ShareImageData {
   isLastDay: boolean;
   wonCount: number;
   days: DayResult[];
+  /** Bonus round: replaces the "DÍA X DE 11" pill, the title and the winner badge. */
+  bonus?: { pill: string; title: string; badge: string };
 }
 
 // ---------------------------------------------------------------------------
@@ -137,7 +139,10 @@ export async function renderShareImage(data: ShareImageData): Promise<ImageRespo
   const won = data.variant === "winner" || data.variant === "won";
   const isWinner = data.variant === "winner";
   const t = won ? GREEN : CREAM;
-  const title = shareTitle(data.variant, data.multiWinnerDay, data.dayNumber);
+  const title =
+    data.bonus && data.variant === "winner"
+      ? data.bonus.title
+      : shareTitle(data.variant, data.multiWinnerDay, data.dayNumber);
   const titleSize = title.length <= 10 ? 140 : title.length <= 14 ? 120 : 112;
 
   return new ImageResponse(
@@ -175,7 +180,7 @@ export async function renderShareImage(data: ShareImageData): Promise<ImageRespo
                 borderRadius: 999,
               }}
             >
-              {dayPillText(data.dayNumber, data.date)}
+              {data.bonus?.pill ?? dayPillText(data.dayNumber, data.date)}
             </div>
           </div>
         </div>
@@ -195,9 +200,9 @@ export async function renderShareImage(data: ShareImageData): Promise<ImageRespo
                 borderRadius: 999,
               }}
             >
-              {winnerBadge(data.multiWinnerDay)}
+              {data.bonus?.badge ?? winnerBadge(data.multiWinnerDay)}
             </div>
-            {data.multiWinnerDay && (
+            {data.multiWinnerDay && !data.bonus && (
               <div style={{ display: "flex", fontSize: 30, fontWeight: 600, color: GREEN.title }}>
                 La app 1110 sale el 11 de noviembre
               </div>

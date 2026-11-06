@@ -6,8 +6,25 @@
  *   finished_at) who has NOT already held the title on an earlier day. Each person can
  *   hold the title only once in the whole challenge (Día 1 does not count). If the
  *   fastest person already has a title, it goes to the next one.
+ * - Bonus rounds ("2026-11-06-bonus") work like one more day, with the same single title:
+ *   their key sorts right after the word of that date and before the next day.
  */
-import { FIRST_DATE } from "@/lib/time";
+
+const BONUS_SUFFIX = "-bonus";
+
+export function isBonusKey(key: string): boolean {
+  return key.endsWith(BONUS_SUFFIX);
+}
+
+/** "el Día 3" / "la ronda bonus del 6 de noviembre" — for "Ya ganaste …". */
+export function describeTitle(key: string): string {
+  if (isBonusKey(key)) {
+    const day = Number(key.slice(8, 10));
+    return `la ronda bonus del ${day} de noviembre`;
+  }
+  return `el Día ${getDayNumber(key)}`;
+}
+import { FIRST_DATE, getDayNumber } from "@/lib/time";
 
 export const MULTI_WINNER_DATE = FIRST_DATE;
 
@@ -18,6 +35,7 @@ export function isMultiWinnerDay(date: string): boolean {
 export interface WonPlay {
   id: string;
   participantId: string;
+  /** Day date ("2026-11-05") or bonus round id ("2026-11-06-bonus"). */
   gameDate: string;
   finishedAt: string;
   durationMs: number | null;
@@ -35,7 +53,7 @@ export function pickDayWinners(rows: readonly WonPlay[]): Map<string, DayTitle> 
     .filter((r) => !isMultiWinnerDay(r.gameDate))
     .sort(
       (a, b) =>
-        a.gameDate.localeCompare(b.gameDate) ||
+        (a.gameDate < b.gameDate ? -1 : a.gameDate > b.gameDate ? 1 : 0) ||
         Date.parse(a.finishedAt) - Date.parse(b.finishedAt) ||
         a.id.localeCompare(b.id),
     );

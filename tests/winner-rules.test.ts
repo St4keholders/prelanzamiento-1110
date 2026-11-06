@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type WonPlay, pickDayWinners, titleStatus } from "@/lib/winner-rules";
+import { type WonPlay, describeTitle, pickDayWinners, titleStatus } from "@/lib/winner-rules";
 
 let n = 0;
 const won = (participantId: string, gameDate: string, time: string): WonPlay => ({
@@ -75,5 +75,31 @@ describe("titleStatus", () => {
     });
     expect(titleStatus("luis", "2026-11-05", true, winners)).toEqual({ kind: "none" });
     expect(titleStatus("angie", "2026-11-06", false, winners)).toEqual({ kind: "none" });
+  });
+});
+
+describe("bonus round", () => {
+  it("counts as one more title, evaluated right after the word of its day", () => {
+    const w = pickDayWinners([
+      won("ana", "2026-11-06", "08:00:00"), // gana el 6
+      won("ana", "2026-11-06-bonus", "12:01:00"), // ya tiene título → no
+      won("luis", "2026-11-06-bonus", "12:03:00"), // gana la bonus
+      won("luis", "2026-11-07", "00:01:00"), // ya tiene la bonus → no
+      won("eva", "2026-11-07", "00:02:00"),
+    ]);
+    expect(w.get("2026-11-06")?.participantId).toBe("ana");
+    expect(w.get("2026-11-06-bonus")?.participantId).toBe("luis");
+    expect(w.get("2026-11-07")?.participantId).toBe("eva");
+  });
+
+  it("explains which title blocks the player", () => {
+    const winners = keyed(pickDayWinners([won("luis", "2026-11-06-bonus", "12:03:00")]));
+    expect(titleStatus("luis", "2026-11-06-bonus", true, winners)).toEqual({ kind: "winner" });
+    expect(titleStatus("luis", "2026-11-08", true, winners)).toEqual({
+      kind: "already",
+      titleDate: "2026-11-06-bonus",
+    });
+    expect(describeTitle("2026-11-06-bonus")).toBe("la ronda bonus del 6 de noviembre");
+    expect(describeTitle("2026-11-05")).toBe("el Día 2");
   });
 });

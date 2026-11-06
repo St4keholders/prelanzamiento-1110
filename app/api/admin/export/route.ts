@@ -1,4 +1,4 @@
-import { getAllParticipants, getAllResults } from "@/lib/admin";
+import { getAllParticipants, getAllResults, getBonusResults } from "@/lib/admin";
 import {
   type ResultLike,
   type Sheet,
@@ -10,7 +10,7 @@ import {
 import { jsonError } from "@/lib/http";
 import { isAdmin } from "@/lib/session";
 import { allGameDates, getDayNumber, isGameDate } from "@/lib/time";
-import { titleStatus } from "@/lib/winner-rules";
+import { describeTitle, titleStatus } from "@/lib/winner-rules";
 import { byEmail, getOfficialWinners } from "@/lib/winners";
 
 async function winnerLabeler() {
@@ -19,7 +19,7 @@ async function winnerLabeler() {
     const s = titleStatus(r.email, r.game_date, r.status === "won", winners);
     if (s.kind === "multi") return "Sí (Día 1: todos ganan)";
     if (s.kind === "winner") return "Sí";
-    if (s.kind === "already") return `No (ya ganó el Día ${getDayNumber(s.titleDate)})`;
+    if (s.kind === "already") return `No (ya ganó ${describeTitle(s.titleDate)})`;
     return "";
   };
 }
@@ -48,7 +48,11 @@ export async function GET(request: Request) {
       sheets = [resultsSheet(rows, `Día ${getDayNumber(date)}`, label)];
       filename = `resultados-${date}`;
     } else if (type === "all-results") {
-      const [all, label] = await Promise.all([getAllResults(), winnerLabeler()]);
+      const [all, label, bonus] = await Promise.all([
+        getAllResults(),
+        winnerLabeler(),
+        getBonusResults(),
+      ]);
       if (format === "xlsx") {
         sheets = [
           resultsSheet(all, "Todos", label),
@@ -59,6 +63,7 @@ export async function GET(request: Request) {
               label,
             ),
           ),
+          ...(bonus.length > 0 ? [resultsSheet(bonus, "Ronda bonus", label)] : []),
         ];
       } else {
         sheets = [resultsSheet(all, "Todos", label)];

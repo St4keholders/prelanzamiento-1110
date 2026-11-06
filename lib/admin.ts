@@ -203,3 +203,92 @@ export async function getAllResults(date?: string): Promise<ResultRow[]> {
     if (rows.length < FETCH_CHUNK) return out;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Ronda bonus
+// ---------------------------------------------------------------------------
+
+export interface BonusSummary {
+  id: string;
+  eligibleDate: string;
+  word: string;
+  category: string;
+  opensAt: string;
+  closesAt: string;
+  timeLimitSeconds: number;
+  started: number;
+  won: number;
+  lostErrors: number;
+  lostTimeout: number;
+  playing: number;
+}
+
+/** Rounds with their counters. Empty if the bonus tables don't exist yet. */
+export async function getBonusSummaries(): Promise<BonusSummary[]> {
+  const db = supabaseAdmin();
+  const [rounds, plays] = await Promise.all([
+    db.from("bonus_rounds").select("*").order("opens_at"),
+    db.from("bonus_plays").select("round_id, status, lost_reason, deadline_at").limit(10000),
+  ]);
+  if (rounds.error || plays.error) return [];
+  const now = Date.now();
+  return (rounds.data ?? []).map((r) => {
+    const mine = (plays.data ?? []).filter((p) => p.round_id === r.id);
+    const expired = (p: (typeof mine)[number]) =>
+      p.status === "playing" && Date.parse(p.deadline_at) <= now;
+    return {
+      id: r.id,
+      eligibleDate: r.eligible_date,
+      word: r.word,
+      category: r.category,
+      opensAt: r.opens_at,
+      closesAt: r.closes_at,
+      timeLimitSeconds: r.time_limit_seconds,
+      started: mine.length,
+      won: mine.filter((p) => p.status === "won").length,
+      lostErrors: mine.filter((p) => p.status === "lost" && p.lost_reason === "errors").length,
+      lostTimeout: mine.filter(
+        (p) => (p.status === "lost" && p.lost_reason === "timeout") || expired(p),
+      ).length,
+      playing: mine.filter((p) => p.status === "playing" && !expired(p)).length,
+    };
+  });
+}
+
+/** Bonus plays in the same shape as the daily results (game_date = round id). */
+export async function getBonusResults(): Promise<ResultRow[]> {
+  const db = supabaseAdmin();
+  const plays = await db.from("bonus_plays").select("*").order("finished_at").limit(10000);
+  if (plays.error || !plays.data?.length) return [];
+  const ids = [...new Set(plays.data.map((p) => p.participant_id))];
+  const people = new Map<string, { full_name: string; email: string; phone: string }>();
+  for (let i = 0; i < ids.length; i += 200) {
+    const { data, error } = await db
+      .from("participants")
+      .select("id, full_name, email, phone")
+      .in("id", ids.slice(i, i + 200));
+    if (error) throw new Error(error.message);
+    for (const p of data ?? []) people.set(p.id, p);
+  }
+  const now = Date.now();
+  return plays.data.map((p) => {
+    const who = people.get(p.participant_id);
+    const timedOut = p.status === "playing" && Date.parse(p.deadline_at) <= now;
+    return {
+      play_id: p.id,
+      game_date: p.round_id,
+      full_name: who?.full_name ?? "",
+      email: who?.email ?? "",
+      phone: who?.phone ?? "",
+      status: (timedOut ? "lost" : p.status) as ResultRow["status"],
+      lost_reason: (timedOut ? "timeout" : p.lost_reason) as ResultRow["lost_reason"],
+      wrong_count: p.wrong_count,
+      guessed_letters: p.guessed_letters,
+      started_at: p.started_at,
+      finished_at: timedOut ? p.deadline_at : p.finished_at,
+      duration_ms: p.duration_ms,
+      win_code: p.win_code,
+      total_count: plays.data.length,
+    };
+  });
+}
