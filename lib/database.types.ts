@@ -231,80 +231,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      bonus_apply_guess: {
-        Args: {
-          p_letter: string
-          p_now?: string
-          p_participant: string
-          p_round: string
-        }
-        Returns: {
-          deadline_at: string
-          duration_ms: number | null
-          finished_at: string | null
-          guessed_letters: string[]
-          id: string
-          lost_reason: string | null
-          participant_id: string
-          round_id: string
-          started_at: string
-          status: string
-          win_code: string | null
-          wrong_count: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "bonus_plays"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      bonus_refresh_play: {
-        Args: { p_now?: string; p_participant: string; p_round: string }
-        Returns: {
-          deadline_at: string
-          duration_ms: number | null
-          finished_at: string | null
-          guessed_letters: string[]
-          id: string
-          lost_reason: string | null
-          participant_id: string
-          round_id: string
-          started_at: string
-          status: string
-          win_code: string | null
-          wrong_count: number
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "bonus_plays"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
-      bonus_start_play: {
-        Args: { p_now?: string; p_participant: string; p_round: string }
-        Returns: {
-          deadline_at: string
-          duration_ms: number | null
-          finished_at: string | null
-          guessed_letters: string[]
-          id: string
-          lost_reason: string | null
-          participant_id: string
-          round_id: string
-          started_at: string
-          status: string
-          win_code: string | null
-          wrong_count: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "bonus_plays"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       admin_day_summary: {
         Args: never
         Returns: {
@@ -384,6 +310,80 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "plays"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      bonus_apply_guess: {
+        Args: {
+          p_letter: string
+          p_now?: string
+          p_participant: string
+          p_round: string
+        }
+        Returns: {
+          deadline_at: string
+          duration_ms: number | null
+          finished_at: string | null
+          guessed_letters: string[]
+          id: string
+          lost_reason: string | null
+          participant_id: string
+          round_id: string
+          started_at: string
+          status: string
+          win_code: string | null
+          wrong_count: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bonus_plays"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      bonus_refresh_play: {
+        Args: { p_now?: string; p_participant: string; p_round: string }
+        Returns: {
+          deadline_at: string
+          duration_ms: number | null
+          finished_at: string | null
+          guessed_letters: string[]
+          id: string
+          lost_reason: string | null
+          participant_id: string
+          round_id: string
+          started_at: string
+          status: string
+          win_code: string | null
+          wrong_count: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "bonus_plays"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      bonus_start_play: {
+        Args: { p_now?: string; p_participant: string; p_round: string }
+        Returns: {
+          deadline_at: string
+          duration_ms: number | null
+          finished_at: string | null
+          guessed_letters: string[]
+          id: string
+          lost_reason: string | null
+          participant_id: string
+          round_id: string
+          started_at: string
+          status: string
+          win_code: string | null
+          wrong_count: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bonus_plays"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -567,3 +567,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
