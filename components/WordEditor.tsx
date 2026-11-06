@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { TIME_LIMIT_OPTIONS, TIME_LIMIT_SECONDS, formatClockSeconds } from "@/lib/time";
 
 interface WordEditorProps {
   date: string;
@@ -9,6 +10,7 @@ interface WordEditorProps {
   longDate: string;
   initialWord: string;
   initialCategory: string;
+  initialTime: number;
   editable: boolean;
   deadlineLabel: string;
 }
@@ -19,6 +21,7 @@ export function WordEditor({
   longDate,
   initialWord,
   initialCategory,
+  initialTime,
   editable,
   deadlineLabel,
 }: WordEditorProps) {
@@ -27,10 +30,16 @@ export function WordEditor({
   const [category, setCategory] = useState(initialCategory);
   const [savedWord, setSavedWord] = useState(initialWord);
   const [savedCategory, setSavedCategory] = useState(initialCategory);
+  const [time, setTime] = useState(initialTime);
+  const [savedTime, setSavedTime] = useState(initialTime);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
 
-  const dirty = word.trim() !== savedWord || category.trim() !== savedCategory;
+  const dirty =
+    word.trim() !== savedWord || category.trim() !== savedCategory || time !== savedTime;
+  const timeOptions = (TIME_LIMIT_OPTIONS as readonly number[]).includes(time)
+    ? TIME_LIMIT_OPTIONS
+    : [...TIME_LIMIT_OPTIONS, time].sort((a, b) => a - b);
   const loaded = savedWord !== "";
 
   async function handleSubmit(e: FormEvent) {
@@ -41,7 +50,7 @@ export function WordEditor({
       const res = await fetch("/api/admin/words", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date, word, category }),
+        body: JSON.stringify({ date, word, category, timeLimitSeconds: time }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -54,6 +63,8 @@ export function WordEditor({
       setCategory(data.word.category);
       setSavedWord(data.word.word);
       setSavedCategory(data.word.category);
+      setTime(data.word.time_limit_seconds);
+      setSavedTime(data.word.time_limit_seconds);
       setMessage({ kind: "ok", text: "Guardada." });
       router.refresh();
     } catch {
@@ -91,7 +102,7 @@ export function WordEditor({
       </div>
 
       {editable ? (
-        <div className="grid gap-3 sm:grid-cols-[2fr_1fr_auto] sm:items-end">
+        <div className="grid gap-3 sm:grid-cols-[2fr_1fr_auto_auto] sm:items-end">
           <div>
             <label htmlFor={`word-${date}`} className="mb-1 block text-xs font-bold text-ink">
               Palabra o frase
@@ -125,6 +136,24 @@ export function WordEditor({
               className="w-full rounded-2xl border border-line bg-white px-4 py-2.5 text-sm font-medium text-ink"
             />
           </div>
+          <div>
+            <label htmlFor={`time-${date}`} className="mb-1 block text-xs font-bold text-ink">
+              Tiempo
+            </label>
+            <select
+              id={`time-${date}`}
+              value={time}
+              onChange={(e) => setTime(Number(e.target.value))}
+              className="w-full rounded-2xl border border-line bg-white px-3 py-2.5 font-display text-sm font-bold text-ink sm:w-auto"
+            >
+              {timeOptions.map((s) => (
+                <option key={s} value={s}>
+                  {formatClockSeconds(s)}
+                  {s === TIME_LIMIT_SECONDS ? " (por defecto)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
           <button
             type="submit"
             disabled={saving || !dirty}
@@ -134,11 +163,12 @@ export function WordEditor({
           </button>
         </div>
       ) : (
-        <div className="grid gap-1 sm:grid-cols-[2fr_1fr]">
+        <div className="grid gap-1 sm:grid-cols-[2fr_1fr_auto]">
           <p className="font-display text-sm font-bold text-primary-dark">
             {savedWord || <span className="text-muted">—</span>}
           </p>
           <p className="text-sm text-ink">{savedCategory || <span className="text-muted">—</span>}</p>
+          <p className="text-sm font-bold text-ink">⏱ {formatClockSeconds(savedTime)}</p>
         </div>
       )}
 

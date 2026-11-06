@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   const parsed = dailyWordSchema.safeParse(await readJson(request));
   if (!parsed.success) return jsonError("invalid", firstIssue(parsed.error), 400);
 
-  const { date, word, category } = parsed.data;
+  const { date, word, category, timeLimitSeconds } = parsed.data;
   if (!isGameDate(date)) {
     return jsonError("invalid", "La fecha debe estar entre el 4 y el 14 de noviembre.", 400);
   }
@@ -25,7 +25,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const saved = await saveDailyWord({ game_date: date, word, category });
+    const saved = await saveDailyWord({
+      game_date: date,
+      word,
+      category,
+      time_limit_seconds: timeLimitSeconds,
+    });
     return jsonOk({ ok: true, word: saved });
   } catch (err) {
     console.error(err);

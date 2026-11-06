@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_TIME_LIMIT, MIN_TIME_LIMIT, TIME_LIMIT_SECONDS } from "@/lib/time";
 import { ALPHABET } from "@/lib/word";
 
 export const emailSchema = z
@@ -78,6 +79,12 @@ export const dailyWordSchema = z.object({
         .min(2, { message: "Escribe la categoría." })
         .max(40, { message: "La categoría es demasiado larga (máximo 40 caracteres)." }),
     ),
+  timeLimitSeconds: z.coerce
+    .number()
+    .int({ message: "El tiempo debe ser un número entero de segundos." })
+    .min(MIN_TIME_LIMIT, { message: `El tiempo mínimo es ${MIN_TIME_LIMIT} segundos.` })
+    .max(MAX_TIME_LIMIT, { message: `El tiempo máximo es ${MAX_TIME_LIMIT / 60} minutos.` })
+    .default(TIME_LIMIT_SECONDS),
 });
 
 /** First validation message, for friendly API errors. */
