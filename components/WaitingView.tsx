@@ -2,16 +2,17 @@
 
 import Image from "next/image";
 import { useEffect } from "react";
+import { BonusCard } from "@/components/BonusCard";
 import { Countdown } from "@/components/Countdown";
 import { StreakDots } from "@/components/StreakDots";
-import type { PlayResult, PublicDay, PublicPlay } from "@/lib/game-types";
+import type { PlayResult, PublicBonus, PublicDay, PublicPlay } from "@/lib/game-types";
 import { NUECES_BONUS_TEXT } from "@/lib/share-text";
+import { describeTitle } from "@/lib/winner-rules";
 import {
   TOTAL_DAYS,
   formatClockSeconds,
   formatDuration,
   formatLongDate,
-  getDayNumber,
 } from "@/lib/time";
 
 const REFRESH_MS = 60_000;
@@ -20,10 +21,13 @@ interface WaitingViewProps {
   day: PublicDay;
   play: PublicPlay;
   result: PlayResult;
+  bonus: PublicBonus | null;
   serverNow: string;
   nextWordAt: string;
   isToday: boolean;
   onShowImage: () => void;
+  onPlayBonus: () => void;
+  onShowBonusImage: () => void;
   onRefresh: () => void;
 }
 
@@ -32,10 +36,13 @@ export function WaitingView({
   day,
   play,
   result,
+  bonus,
   serverNow,
   nextWordAt,
   isToday,
   onShowImage,
+  onPlayBonus,
+  onShowBonusImage,
   onRefresh,
 }: WaitingViewProps) {
   // Refresh every minute so the "someone already won" announcement shows up.
@@ -110,9 +117,19 @@ export function WaitingView({
 
       {won && result.titledDate && (
         <p className="rounded-2xl border border-line bg-white px-4 py-2.5 text-center text-xs font-semibold text-ink">
-          Ya ganaste el Día {getDayNumber(result.titledDate)}. Cada persona puede ser ganadora una
+          Ya ganaste {describeTitle(result.titledDate)}. Cada persona puede ser ganadora una
           sola vez, así que el título de este día es para otra persona. ¡Igual suma a tu racha!
         </p>
+      )}
+
+      {bonus && (
+        <BonusCard
+          bonus={bonus}
+          serverNow={serverNow}
+          onPlay={onPlayBonus}
+          onShowImage={onShowBonusImage}
+          onRefresh={onRefresh}
+        />
       )}
 
       <div className="rounded-3xl border border-line bg-white p-4 shadow-soft">

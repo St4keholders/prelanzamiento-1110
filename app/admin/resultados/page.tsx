@@ -3,7 +3,12 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { AdminShell } from "@/components/AdminShell";
 import { PAGE_SIZE, getResultsPage } from "@/lib/admin";
-import { type TitleStatus, isMultiWinnerDay, titleStatus } from "@/lib/winner-rules";
+import {
+  type TitleStatus,
+  describeTitle,
+  isMultiWinnerDay,
+  titleStatus,
+} from "@/lib/winner-rules";
 import { byEmail, getOfficialWinners } from "@/lib/winners";
 import { serverNow } from "@/lib/env";
 import { reasonLabel, statusLabel } from "@/lib/export";
@@ -252,7 +257,7 @@ function TitleBadge({ status }: { status: TitleStatus }) {
   if (status.kind === "already") {
     return (
       <span className="rounded-lg bg-warm px-2 py-0.5 text-[11px] font-bold text-muted">
-        Ya ganó el Día {getDayNumber(status.titleDate)}
+        Ya ganó {describeTitle(status.titleDate)}
       </span>
     );
   }

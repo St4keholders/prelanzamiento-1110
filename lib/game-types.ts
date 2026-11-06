@@ -60,6 +60,27 @@ export interface PlayResult {
   titledDate: string | null;
 }
 
+/** Extra word ("ronda bonus") for people who already finished the word of the day. */
+export interface PublicBonus {
+  id: string;
+  /** upcoming: not open yet · open: can be played · closed: window over. */
+  window: "upcoming" | "open" | "closed";
+  opensAt: string;
+  closesAt: string;
+  category: string;
+  mask: Mask;
+  timeLimitSeconds: number;
+  maxErrors: number;
+  play: PublicPlay | null;
+  /** Only when `play` is finished. */
+  result: {
+    isWinner: boolean;
+    winner: DayWinner | null;
+    /** Earlier title this player already holds (blocks the bonus title). */
+    titledDate: string | null;
+  } | null;
+}
+
 interface BaseState {
   serverNow: string;
   player: PublicPlayer;
@@ -79,6 +100,8 @@ export type GameState =
       nextWordAt: string;
       /** Streak + first winner, only when `play` is finished. */
       result: PlayResult | null;
+      /** Bonus round, only for players who finished the word of the day (or are playing it). */
+      bonus: PublicBonus | null;
     });
 
 export interface ApiError {

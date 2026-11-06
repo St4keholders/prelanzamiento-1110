@@ -10,10 +10,10 @@ import { RegisterForm } from "@/components/RegisterForm";
 import { ShareStep } from "@/components/ShareStep";
 import { Timer } from "@/components/Timer";
 import { WaitingView } from "@/components/WaitingView";
-import type { GameState } from "@/lib/game-types";
+import type { GameState, PublicPlay } from "@/lib/game-types";
 import { playSound } from "@/lib/sounds";
 import { TOTAL_DAYS, formatClockSeconds, formatLongDate } from "@/lib/time";
-import type { Letter } from "@/lib/word";
+import type { Letter, Mask } from "@/lib/word";
 
 interface GameClientProps {
   initialState: GameState | null;
@@ -24,8 +24,10 @@ export function GameClient({ initialState }: GameClientProps) {
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [shakeKey, setShakeKey] = useState(0);
-  /** True right after finishing a play in this visit: show the share image step first. */
-  const [showShare, setShowShare] = useState(false);
+  /** Right after finishing a play in this visit: show the share image step first. */
+  const [showShare, setShowShare] = useState<null | "daily" | "bonus">(null);
+  /** The player tapped "Jugar ronda bonus" (board shown before starting the clock). */
+  const [bonusMode, setBonusMode] = useState(false);
 
   const refreshState = useCallback(async (): Promise<GameState | null> => {
     try {
@@ -48,12 +50,20 @@ export function GameClient({ initialState }: GameClientProps) {
     void refreshState();
   }, [refreshState]);
 
-  async function handleStart() {
+  /** The play the board is showing (word of the day or bonus). */
+  function currentPlay(s: GameState | null, kind: "daily" | "bonus"): PublicPlay | null {
+    if (!s || s.phase !== "active" || s.noWord) return null;
+    return kind === "bonus" ? (s.bonus?.play ?? null) : s.play;
+  }
+
+  async function handleStart(kind: "daily" | "bonus" = "daily") {
     if (busy) return;
     setBusy(true);
     setErrorMsg(null);
     try {
-      const res = await fetch("/api/game/start", { method: "POST" });
+      const res = await fetch(kind === "bonus" ? "/api/bonus/start" : "/api/game/start", {
+        method: "POST",
+      });
       if (res.status === 401) {
         setState(null);
         return;
@@ -71,21 +81,16 @@ export function GameClient({ initialState }: GameClientProps) {
     }
   }
 
-  async function handleGuess(letter: Letter) {
+  async function handleGuess(letter: Letter, kind: "daily" | "bonus" = "daily") {
     if (busy) return;
     setBusy(true);
     setErrorMsg(null);
-    const prevCorrect =
-      state && state.phase === "active" && !state.noWord && state.play
-        ? state.play.correctLetters.length
-        : 0;
-    const prevWrong =
-      state && state.phase === "active" && !state.noWord && state.play
-        ? state.play.wrongLetters.length
-        : 0;
+    const prev = currentPlay(state, kind);
+    const prevCorrect = prev ? prev.correctLetters.length : 0;
+    const prevWrong = prev ? prev.wrongLetters.length : 0;
 
     try {
-      const res = await fetch("/api/game/guess", {
+      const res = await fetch(kind === "bonus" ? "/api/bonus/guess" : "/api/game/guess", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ letter }),
@@ -102,17 +107,20 @@ export function GameClient({ initialState }: GameClientProps) {
       const next = data as GameState;
       setState(next);
 
-      if (next.phase === "active" && !next.noWord && next.play) {
-        if (next.play.status === "won") {
+      const play = currentPlay(next, kind);
+      if (play) {
+        if (play.status === "won") {
           playSound("level-success");
-          setShowShare(true);
-        } else if (next.play.status === "lost") {
+          setShowShare(kind);
+          setBonusMode(false);
+        } else if (play.status === "lost") {
           setShakeKey((k) => k + 1);
           playSound("game-over");
-          setShowShare(true);
-        } else if (next.play.correctLetters.length > prevCorrect) {
+          setShowShare(kind);
+          setBonusMode(false);
+        } else if (play.correctLetters.length > prevCorrect) {
           playSound("correct");
-        } else if (next.play.wrongLetters.length > prevWrong) {
+        } else if (play.wrongLetters.length > prevWrong) {
           setShakeKey((k) => k + 1);
           playSound("incorrect");
         }
@@ -134,7 +142,16 @@ export function GameClient({ initialState }: GameClientProps) {
     playSound("game-over");
     const next = await refreshState();
     if (next && next.phase === "active" && !next.noWord && next.play?.status === "lost") {
-      setShowShare(true);
+      setShowShare("daily");
+    }
+  }, [refreshState]);
+
+  const handleBonusTimerExpire = useCallback(async () => {
+    playSound("game-over");
+    const next = await refreshState();
+    if (next && next.phase === "active" && !next.noWord && next.bonus?.play?.status === "lost") {
+      setShowShare("bonus");
+      setBonusMode(false);
     }
   }, [refreshState]);
 
@@ -186,35 +203,85 @@ export function GameClient({ initialState }: GameClientProps) {
             nextWordAt={state.nextWordAt}
             onReady={refreshState}
           />
+        ) : state.bonus &&
+          (state.bonus.play?.status === "playing" ||
+            (bonusMode && !state.bonus.play && state.bonus.window === "open")) ? (
+          <ActiveGameView
+            key="bonus"
+            headerTitle="🎁 Ronda bonus"
+            headerSubtitle="Solo por hoy"
+            category={state.bonus.category}
+            mask={state.bonus.mask}
+            timeLimitSeconds={state.bonus.timeLimitSeconds}
+            maxErrors={state.bonus.maxErrors}
+            play={state.bonus.play}
+            serverNow={state.serverNow}
+            busy={busy}
+            errorMsg={errorMsg}
+            shakeKey={shakeKey}
+            onStart={() => handleStart("bonus")}
+            onGuess={(l) => handleGuess(l, "bonus")}
+            onExpire={handleBonusTimerExpire}
+            onBack={
+              state.bonus.play
+                ? undefined
+                : () => {
+                    setBonusMode(false);
+                    setErrorMsg(null);
+                  }
+            }
+          />
+        ) : showShare === "bonus" && state.bonus?.play && state.bonus.play.status !== "playing" ? (
+          <ShareStep
+            key="share-bonus"
+            src={`/api/game/share-image?bonus=1&r=${state.bonus.id}`}
+            fileName="ahorcadito-11diez-ronda-bonus.png"
+            won={state.bonus.play.status === "won"}
+            onDone={() => setShowShare(null)}
+          />
         ) : state.play && state.play.status !== "playing" && state.result ? (
-          showShare ? (
+          showShare === "daily" ? (
             <ShareStep
               key={state.play.gameDate}
-              date={state.play.gameDate}
-              dayNumber={state.day.number}
+              src={`/api/game/share-image?d=${state.play.gameDate}`}
+              fileName={`ahorcadito-11diez-dia-${state.day.number}.png`}
               won={state.play.status === "won"}
-              onDone={() => setShowShare(false)}
+              onDone={() => setShowShare(null)}
             />
           ) : (
             <WaitingView
               day={state.day}
               play={state.play}
               result={state.result}
+              bonus={state.bonus}
               serverNow={state.serverNow}
               nextWordAt={state.nextWordAt}
               isToday={state.isToday}
-              onShowImage={() => setShowShare(true)}
+              onShowImage={() => setShowShare("daily")}
+              onPlayBonus={() => {
+                setErrorMsg(null);
+                setBonusMode(true);
+              }}
+              onShowBonusImage={() => setShowShare("bonus")}
               onRefresh={backgroundRefresh}
             />
           )
         ) : (
           <ActiveGameView
-            state={state}
+            key="daily"
+            headerTitle={`Día ${state.day.number} de ${TOTAL_DAYS}`}
+            headerSubtitle={formatLongDate(state.day.date)}
+            category={state.day.category}
+            mask={state.day.mask}
+            timeLimitSeconds={state.day.timeLimitSeconds}
+            maxErrors={state.day.maxErrors}
+            play={state.play}
+            serverNow={state.serverNow}
             busy={busy}
             errorMsg={errorMsg}
             shakeKey={shakeKey}
-            onStart={handleStart}
-            onGuess={handleGuess}
+            onStart={() => handleStart("daily")}
+            onGuess={(l) => handleGuess(l, "daily")}
             onExpire={handleTimerExpire}
           />
         )}
@@ -333,47 +400,73 @@ function NoWordView({
 }
 
 function ActiveGameView({
-  state,
+  headerTitle,
+  headerSubtitle,
+  category,
+  mask,
+  timeLimitSeconds,
+  maxErrors,
+  play,
+  serverNow,
   busy,
   errorMsg,
   shakeKey,
   onStart,
   onGuess,
   onExpire,
+  onBack,
 }: {
-  state: Extract<GameState, { phase: "active"; noWord?: false }>;
+  headerTitle: string;
+  headerSubtitle: string;
+  category: string;
+  mask: Mask;
+  timeLimitSeconds: number;
+  maxErrors: number;
+  play: PublicPlay | null;
+  serverNow: string;
   busy: boolean;
   errorMsg: string | null;
   shakeKey: number;
   onStart: () => void;
   onGuess: (letter: Letter) => void;
   onExpire: () => void;
+  /** Shown only before the clock starts (bonus round). */
+  onBack?: () => void;
 }) {
-  const { day, play, serverNow } = state;
   const started = play !== null && play.status === "playing";
-  const livesLeft = play ? play.livesLeft : day.maxErrors;
+  const livesLeft = play ? play.livesLeft : maxErrors;
 
   return (
     <section
       key={shakeKey}
       className={`w-full space-y-2.5 ${shakeKey > 0 ? "animate-shake" : "animate-enter"}`}
-      aria-label="Juego del día"
+      aria-label={headerTitle}
     >
-      {/* Encabezado del día + estado */}
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-xs font-bold text-muted underline-offset-2 hover:text-ink hover:underline"
+        >
+          ← Volver
+        </button>
+      )}
+
+      {/* Encabezado + estado */}
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-line bg-white px-3.5 py-2 shadow-soft">
         <div>
           <p className="font-display text-xs font-extrabold uppercase tracking-wide text-primary">
-            Día {day.number} de {TOTAL_DAYS}
+            {headerTitle}
           </p>
-          <p className="text-xs font-semibold text-muted">{formatLongDate(day.date)}</p>
+          <p className="text-xs font-semibold text-muted">{headerSubtitle}</p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Hearts livesLeft={livesLeft} maxLives={day.maxErrors} />
+          <Hearts livesLeft={livesLeft} maxLives={maxErrors} />
           <Timer
             deadlineAt={play?.deadlineAt ?? null}
             serverNow={serverNow}
-            timeLimitSeconds={day.timeLimitSeconds}
+            timeLimitSeconds={timeLimitSeconds}
             running={started}
             onExpire={onExpire}
           />
@@ -386,13 +479,13 @@ function ActiveGameView({
           Categoría
         </p>
         <p className="font-display text-base font-extrabold uppercase text-primary-dark">
-          {day.category}
+          {category}
         </p>
       </div>
 
       {/* Casillas de la palabra */}
       <div className="rounded-3xl border border-line bg-warm px-2.5 py-3 shadow-soft">
-        <Board mask={day.mask} />
+        <Board mask={mask} />
 
         {!started && (
           <div className="mt-2 flex flex-col items-center gap-1.5 border-t border-line/70 pt-2.5 text-center">
@@ -402,7 +495,7 @@ function ActiveGameView({
               onClick={onStart}
               className="rounded-2xl bg-cta px-6 py-2.5 font-display text-sm font-extrabold uppercase tracking-wide text-white shadow-soft transition hover:brightness-95 active:translate-y-0.5 disabled:opacity-60"
             >
-              {busy ? "Iniciando..." : `▶ Iniciar reloj (${formatClockSeconds(day.timeLimitSeconds)})`}
+              {busy ? "Iniciando..." : `▶ Iniciar reloj (${formatClockSeconds(timeLimitSeconds)})`}
             </button>
             <p className="text-[11px] font-medium text-muted">
               El tiempo arranca al pulsar <strong>Iniciar</strong> o al tocar tu primera letra.

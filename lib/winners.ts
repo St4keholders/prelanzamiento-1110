@@ -49,6 +49,26 @@ export async function getOfficialWinners(): Promise<Map<string, OfficialWinner>>
     if ((data ?? []).length < PAGE) break;
   }
 
+  // Bonus rounds count as one more "day" (key = round id). Ignored if the table doesn't exist yet.
+  const bonus = await db
+    .from("bonus_plays")
+    .select("id, participant_id, round_id, finished_at, duration_ms")
+    .eq("status", "won")
+    .order("finished_at", { ascending: true })
+    .limit(PAGE);
+  if (!bonus.error) {
+    for (const r of bonus.data ?? []) {
+      if (!r.finished_at) continue;
+      rows.push({
+        id: r.id,
+        participantId: r.participant_id,
+        gameDate: r.round_id,
+        finishedAt: r.finished_at,
+        durationMs: r.duration_ms,
+      });
+    }
+  }
+
   const picks = pickDayWinners(rows);
   const ids = [...new Set([...picks.values()].map((w) => w.participantId))];
   const people = new Map<string, { email: string; full_name: string }>();

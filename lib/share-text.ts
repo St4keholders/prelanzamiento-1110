@@ -58,6 +58,16 @@ export function progressText(wonCount: number): string {
   return `Voy ${wonCount} de ${TOTAL_DAYS} palabras`;
 }
 
+/** Texts for the bonus round image ("RONDA BONUS · 6 NOV 2026"). */
+export function bonusShareTexts(date: string) {
+  const [y, m, d] = date.split("-").map(Number);
+  return {
+    pill: `RONDA BONUS · ${d} ${MONTHS[m - 1]} ${y}`,
+    title: "¡Gané la ronda bonus!",
+    badge: "GANADOR RONDA BONUS",
+  };
+}
+
 /** Badge above the title of a day winner's image. */
 export function winnerBadge(multiWinnerDay: boolean): string {
   return multiWinnerDay ? "+25 NUECES EN LA APP 1110" : "GANADOR DEL DÍA";

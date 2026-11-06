@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { AdminShell } from "@/components/AdminShell";
-import { getSummary } from "@/lib/admin";
+import { getBonusSummaries, getSummary } from "@/lib/admin";
+import { formatDuration } from "@/lib/time";
 import { isMultiWinnerDay } from "@/lib/winner-rules";
 import { getOfficialWinners } from "@/lib/winners";
 import { isAdmin } from "@/lib/session";
@@ -11,9 +12,10 @@ import { allGameDates, getDayNumber } from "@/lib/time";
 async function SummaryContent() {
   if (!(await isAdmin())) redirect("/admin/login");
 
-  const [{ totalParticipants, days }, winners] = await Promise.all([
+  const [{ totalParticipants, days }, winners, bonusRounds] = await Promise.all([
     getSummary(),
     getOfficialWinners(),
+    getBonusSummaries(),
   ]);
   const byDate = new Map(days.map((d) => [d.game_date, d]));
   const allDates = allGameDates();
@@ -162,6 +164,45 @@ async function SummaryContent() {
             </tbody>
           </table>
         </div>
+
+        {bonusRounds.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="font-display text-lg font-extrabold text-primary-dark">🎁 Rondas bonus</h2>
+            {bonusRounds.map((b) => {
+              const w = winners.get(b.id);
+              const time = new Intl.DateTimeFormat("es-CO", {
+                timeZone: "America/Bogota",
+                day: "numeric",
+                month: "short",
+                hour: "numeric",
+                minute: "2-digit",
+              });
+              return (
+                <div key={b.id} className="rounded-3xl border border-line bg-white p-4 shadow-soft">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="font-display text-sm font-extrabold text-primary-dark">
+                      {b.word} <span className="font-medium text-muted">· {b.category}</span>
+                    </p>
+                    <p className="text-xs text-muted">
+                      {time.format(new Date(b.opensAt))} → {time.format(new Date(b.closesAt))} ·{" "}
+                      {Math.round(b.timeLimitSeconds / 60)} min · solo quienes jugaron el {b.eligibleDate}
+                    </p>
+                  </div>
+                  <p className="mt-2 text-sm text-ink">
+                    Iniciaron <strong>{b.started}</strong> · Adivinaron <strong>{b.won}</strong> ·
+                    Perdieron (vidas) <strong>{b.lostErrors}</strong> · Perdieron (tiempo){" "}
+                    <strong>{b.lostTimeout}</strong> · En curso <strong>{b.playing}</strong>
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-primary-dark">
+                    {w
+                      ? `🏆 Ganador: ${w.fullName} (${w.email})${w.durationMs != null ? ` · ${formatDuration(w.durationMs)}` : ""}`
+                      : "Todavía no hay ganador de la ronda bonus."}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </AdminShell>
   );

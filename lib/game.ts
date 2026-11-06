@@ -10,6 +10,8 @@ import type {
   PublicPlay,
   PublicPlayer,
 } from "@/lib/game-types";
+import { bonusGuess, bonusStart, getBonusForState, resolveBonusRound } from "@/lib/bonus";
+import { GameError } from "@/lib/game-error";
 import { supabaseAdmin } from "@/lib/supabase";
 import {
   LAST_DATE,
@@ -28,18 +30,10 @@ type PlayRow = Database["public"]["Tables"]["plays"]["Row"];
 type WordRow = Database["public"]["Tables"]["daily_words"]["Row"];
 type ParticipantRow = Database["public"]["Tables"]["participants"]["Row"];
 
-export class GameError extends Error {
-  constructor(
-    public code: "unauthorized" | "not_active" | "no_word" | "not_today" | "internal",
-    message: string,
-    public status: number,
-  ) {
-    super(message);
-  }
-}
+export { GameError };
 
 /** ISO string for the SQL `p_now` override, or undefined so Postgres uses now(). */
-function sqlNow(): string | undefined {
+export function sqlNow(): string | undefined {
   return getFakeNow()?.toISOString();
 }
 
@@ -184,6 +178,7 @@ async function buildActiveState(
     isToday: word.game_date === today,
     nextWordAt: nextMidnightBogota(now).toISOString(),
     result: finished ? await getPlayResult(pid, word.game_date) : null,
+    bonus: await getBonusForState(pid, now, word.game_date, finished),
   };
 }
 
@@ -270,4 +265,22 @@ export async function guessLetter(pid: string, letter: string): Promise<GameStat
   });
   if (error) throw mapRpcError(error.message);
   return stateAfter(pid, date, data as PlayRow);
+}
+
+// ---------------------------------------------------------------------------
+// Ronda bonus
+// ---------------------------------------------------------------------------
+
+export async function startBonus(pid: string): Promise<GameState> {
+  const now = serverNow();
+  const roundId = await resolveBonusRound(pid, now, getGameDate(now));
+  await bonusStart(pid, roundId);
+  return getGameState(pid);
+}
+
+export async function guessBonusLetter(pid: string, letter: string): Promise<GameState> {
+  const now = serverNow();
+  const roundId = await resolveBonusRound(pid, now, getGameDate(now));
+  await bonusGuess(pid, roundId, letter);
+  return getGameState(pid);
 }

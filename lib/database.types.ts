@@ -14,6 +14,107 @@ export type Database = {
   }
   public: {
     Tables: {
+      bonus_plays: {
+        Row: {
+          deadline_at: string
+          duration_ms: number | null
+          finished_at: string | null
+          guessed_letters: string[]
+          id: string
+          lost_reason: string | null
+          participant_id: string
+          round_id: string
+          started_at: string
+          status: string
+          win_code: string | null
+          wrong_count: number
+        }
+        Insert: {
+          deadline_at: string
+          duration_ms?: number | null
+          finished_at?: string | null
+          guessed_letters?: string[]
+          id?: string
+          lost_reason?: string | null
+          participant_id: string
+          round_id: string
+          started_at?: string
+          status?: string
+          win_code?: string | null
+          wrong_count?: number
+        }
+        Update: {
+          deadline_at?: string
+          duration_ms?: number | null
+          finished_at?: string | null
+          guessed_letters?: string[]
+          id?: string
+          lost_reason?: string | null
+          participant_id?: string
+          round_id?: string
+          started_at?: string
+          status?: string
+          win_code?: string | null
+          wrong_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bonus_plays_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bonus_plays_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "bonus_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bonus_rounds: {
+        Row: {
+          category: string
+          closes_at: string
+          eligible_date: string
+          id: string
+          max_errors: number
+          opens_at: string
+          time_limit_seconds: number
+          word: string
+        }
+        Insert: {
+          category: string
+          closes_at: string
+          eligible_date: string
+          id: string
+          max_errors?: number
+          opens_at: string
+          time_limit_seconds?: number
+          word: string
+        }
+        Update: {
+          category?: string
+          closes_at?: string
+          eligible_date?: string
+          id?: string
+          max_errors?: number
+          opens_at?: string
+          time_limit_seconds?: number
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bonus_rounds_eligible_date_fkey"
+            columns: ["eligible_date"]
+            isOneToOne: false
+            referencedRelation: "daily_words"
+            referencedColumns: ["game_date"]
+          },
+        ]
+      }
       daily_words: {
         Row: {
           category: string
@@ -213,6 +314,80 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      bonus_apply_guess: {
+        Args: {
+          p_letter: string
+          p_now?: string
+          p_participant: string
+          p_round: string
+        }
+        Returns: {
+          deadline_at: string
+          duration_ms: number | null
+          finished_at: string | null
+          guessed_letters: string[]
+          id: string
+          lost_reason: string | null
+          participant_id: string
+          round_id: string
+          started_at: string
+          status: string
+          win_code: string | null
+          wrong_count: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bonus_plays"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      bonus_refresh_play: {
+        Args: { p_now?: string; p_participant: string; p_round: string }
+        Returns: {
+          deadline_at: string
+          duration_ms: number | null
+          finished_at: string | null
+          guessed_letters: string[]
+          id: string
+          lost_reason: string | null
+          participant_id: string
+          round_id: string
+          started_at: string
+          status: string
+          win_code: string | null
+          wrong_count: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "bonus_plays"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      bonus_start_play: {
+        Args: { p_now?: string; p_participant: string; p_round: string }
+        Returns: {
+          deadline_at: string
+          duration_ms: number | null
+          finished_at: string | null
+          guessed_letters: string[]
+          id: string
+          lost_reason: string | null
+          participant_id: string
+          round_id: string
+          started_at: string
+          status: string
+          win_code: string | null
+          wrong_count: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bonus_plays"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       expire_plays: { Args: { p_now?: string }; Returns: number }
       refresh_play: {
         Args: { p_date: string; p_now?: string; p_participant: string }
@@ -392,3 +567,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
