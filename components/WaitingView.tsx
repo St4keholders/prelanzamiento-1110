@@ -7,6 +7,7 @@ import { Countdown } from "@/components/Countdown";
 import { StreakDots } from "@/components/StreakDots";
 import type { PlayResult, PublicBonus, PublicDay, PublicPlay } from "@/lib/game-types";
 import { NUECES_BONUS_TEXT } from "@/lib/share-text";
+import { formatStart } from "@/lib/schedule";
 import { describeTitle } from "@/lib/winner-rules";
 import {
   TOTAL_DAYS,
@@ -142,12 +143,17 @@ export function WaitingView({
             Hoy era el último día del reto. ¡Muchas gracias por participar!
           </p>
         ) : isToday ? (
-          <Countdown
-            targetIso={nextWordAt}
-            serverNow={serverNow}
-            onReachZero={onRefresh}
-            label="Próxima palabra en"
-          />
+          <>
+            <Countdown
+              targetIso={nextWordAt}
+              serverNow={serverNow}
+              onReachZero={onRefresh}
+              label="Próxima palabra en"
+            />
+            <p className="text-xs font-semibold text-muted">
+              Sale el {formatStart(new Date(nextWordAt))} (hora Colombia)
+            </p>
+          </>
         ) : (
           <button
             type="button"

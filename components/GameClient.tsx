@@ -337,7 +337,7 @@ function BeforeView({
       />
 
       <p className="rounded-2xl border border-line bg-white px-4 py-2.5 text-xs font-semibold text-ink">
-        ✨ Cada día a las 12:00 AM sale una palabra nueva.
+        ✨ Cada día sale una palabra nueva.
       </p>
     </section>
   );

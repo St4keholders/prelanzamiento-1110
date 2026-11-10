@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { formatHour, startAt } from "@/lib/schedule";
 import { TIME_LIMIT_OPTIONS, TIME_LIMIT_SECONDS, formatClockSeconds } from "@/lib/time";
 
 interface WordEditorProps {
@@ -11,8 +12,12 @@ interface WordEditorProps {
   initialWord: string;
   initialCategory: string;
   initialTime: number;
+  /** "12:00" (24 h, hora Colombia). */
+  initialStartTime: string;
   editable: boolean;
   deadlineLabel: string;
+  /** "11 nov, 12:00 p. m. → 12 nov, 12:00 p. m." */
+  windowLabel: string;
 }
 
 export function WordEditor({
@@ -22,8 +27,10 @@ export function WordEditor({
   initialWord,
   initialCategory,
   initialTime,
+  initialStartTime,
   editable,
   deadlineLabel,
+  windowLabel,
 }: WordEditorProps) {
   const router = useRouter();
   const [word, setWord] = useState(initialWord);
@@ -32,11 +39,16 @@ export function WordEditor({
   const [savedCategory, setSavedCategory] = useState(initialCategory);
   const [time, setTime] = useState(initialTime);
   const [savedTime, setSavedTime] = useState(initialTime);
+  const [startTime, setStartTime] = useState(initialStartTime);
+  const [savedStartTime, setSavedStartTime] = useState(initialStartTime);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
 
   const dirty =
-    word.trim() !== savedWord || category.trim() !== savedCategory || time !== savedTime;
+    word.trim() !== savedWord ||
+    category.trim() !== savedCategory ||
+    time !== savedTime ||
+    startTime !== savedStartTime;
   const timeOptions = (TIME_LIMIT_OPTIONS as readonly number[]).includes(time)
     ? TIME_LIMIT_OPTIONS
     : [...TIME_LIMIT_OPTIONS, time].sort((a, b) => a - b);
@@ -50,7 +62,7 @@ export function WordEditor({
       const res = await fetch("/api/admin/words", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date, word, category, timeLimitSeconds: time }),
+        body: JSON.stringify({ date, word, category, timeLimitSeconds: time, startTime }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -65,6 +77,7 @@ export function WordEditor({
       setSavedCategory(data.word.category);
       setTime(data.word.time_limit_seconds);
       setSavedTime(data.word.time_limit_seconds);
+      setSavedStartTime(startTime);
       setMessage({ kind: "ok", text: "Guardada." });
       router.refresh();
     } catch {
@@ -87,8 +100,11 @@ export function WordEditor({
             Día {dayNumber} · <span className="font-semibold text-ink">{longDate}</span>
           </p>
           <p className="text-xs text-muted">
-            {editable ? `Editable ${deadlineLabel}` : "Bloqueada: este día ya empezó o ya pasó."}
+            {editable ? `Editable ${deadlineLabel}` : "Bloqueada: esta palabra ya salió."}
           </p>
+          {windowLabel && (
+            <p className="text-xs font-semibold text-primary">🕛 Se juega: {windowLabel}</p>
+          )}
         </div>
         {loaded ? (
           <span className="rounded-lg bg-sage px-2 py-0.5 text-xs font-bold text-primary">
@@ -102,7 +118,7 @@ export function WordEditor({
       </div>
 
       {editable ? (
-        <div className="grid gap-3 sm:grid-cols-[2fr_1fr_auto_auto] sm:items-end">
+        <div className="grid gap-3 sm:grid-cols-[2fr_1fr_auto_auto_auto] sm:items-end">
           <div>
             <label htmlFor={`word-${date}`} className="mb-1 block text-xs font-bold text-ink">
               Palabra o frase
@@ -137,6 +153,20 @@ export function WordEditor({
             />
           </div>
           <div>
+            <label htmlFor={`start-${date}`} className="mb-1 block text-xs font-bold text-ink">
+              Hora de inicio
+            </label>
+            <input
+              id={`start-${date}`}
+              type="time"
+              required
+              step={60}
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="w-full rounded-2xl border border-line bg-white px-3 py-2 font-display text-sm font-bold text-ink sm:w-auto"
+            />
+          </div>
+          <div>
             <label htmlFor={`time-${date}`} className="mb-1 block text-xs font-bold text-ink">
               Tiempo
             </label>
@@ -168,7 +198,9 @@ export function WordEditor({
             {savedWord || <span className="text-muted">—</span>}
           </p>
           <p className="text-sm text-ink">{savedCategory || <span className="text-muted">—</span>}</p>
-          <p className="text-sm font-bold text-ink">⏱ {formatClockSeconds(savedTime)}</p>
+          <p className="text-sm font-bold text-ink">
+            🕛 {formatHour(startAt(date, savedStartTime))} · ⏱ {formatClockSeconds(savedTime)}
+          </p>
         </div>
       )}
 

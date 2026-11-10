@@ -80,7 +80,7 @@ Construida con **Next.js (App Router + TypeScript + Tailwind CSS)** y **Supabase
 
 ## 5. Cómo cambiar la palabra de un día si hiciera falta
 
-Desde **Panel → Palabras**, antes de las 11:59 p. m. del día anterior. Ahí mismo se elige el **tiempo** de ese día (de 0:30 a 3:00; por defecto 1:30). Una vez empieza el día ya no se puede cambiar desde el panel, para que nadie juegue con una palabra distinta a la de los demás.
+Desde **Panel → Palabras**, antes de las 11:59 p. m. del día anterior. Ahí mismo se eligen el **tiempo** de ese día (de 0:30 a 3:00; por defecto 1:30) y la **hora de inicio**: cada palabra se juega desde su hora de inicio hasta que sale la siguiente (la última, 24 horas). Todo se puede cambiar hasta que la palabra sale. Una vez empieza el día ya no se puede cambiar desde el panel, para que nadie juegue con una palabra distinta a la de los demás.
 
 ---
 

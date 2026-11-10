@@ -152,23 +152,25 @@ export interface DailyWordRow {
   word: string;
   category: string;
   time_limit_seconds: number;
+  /** ISO timestamp when the word comes out. */
+  starts_at: string;
 }
 
 export async function getDailyWords(): Promise<DailyWordRow[]> {
   const { data, error } = await supabaseAdmin()
     .from("daily_words")
-    .select("game_date, word, category, time_limit_seconds")
+    .select("game_date, word, category, time_limit_seconds, starts_at")
     .order("game_date");
   if (error) throw new Error(error.message);
   return data ?? [];
 }
 
-/** Creates or replaces the word of a day. Callers must check `isWordEditable` first. */
+/** Creates or replaces the word of a day. Callers must check that it has not started yet. */
 export async function saveDailyWord(row: DailyWordRow): Promise<DailyWordRow> {
   const { data, error } = await supabaseAdmin()
     .from("daily_words")
     .upsert(row, { onConflict: "game_date" })
-    .select("game_date, word, category, time_limit_seconds")
+    .select("game_date, word, category, time_limit_seconds, starts_at")
     .single();
   if (error) throw new Error(error.message);
   return data;
