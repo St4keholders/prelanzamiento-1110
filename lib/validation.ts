@@ -85,6 +85,11 @@ export const dailyWordSchema = z.object({
     .min(MIN_TIME_LIMIT, { message: `El tiempo mínimo es ${MIN_TIME_LIMIT} segundos.` })
     .max(MAX_TIME_LIMIT, { message: `El tiempo máximo es ${MAX_TIME_LIMIT / 60} minutos.` })
     .default(TIME_LIMIT_SECONDS),
+  /** Start time "HH:MM" (24 h, hora Colombia) on the word's own date. */
+  startTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, { message: "Hora de inicio no válida (usa HH:MM)." })
+    .default("00:00"),
 });
 
 /** First validation message, for friendly API errors. */

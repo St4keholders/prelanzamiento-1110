@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
-import { ALPHABET, type Letter, isValidLetter, normalizeChar } from "@/lib/word";
+import { type Letter, isValidLetter, normalizeChar } from "@/lib/word";
+
+/** Spanish QWERTY layout (Ñ after L), like any phone or computer keyboard. */
+export const QWERTY_ROWS: readonly (readonly Letter[])[] = [
+  ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+  ["A", "S", "D", "F", "G", "H", "J", "K", "L", "Ñ"],
+  ["Z", "X", "C", "V", "B", "N", "M"],
+];
 
 interface KeyboardProps {
   correctLetters: string[];
@@ -39,36 +46,40 @@ export function Keyboard({
 
   return (
     <div
-      className="grid grid-cols-9 gap-1.5 w-full max-w-md mx-auto select-none"
+      className="flex w-full max-w-md mx-auto flex-col gap-1.5 select-none"
       role="group"
       aria-label="Teclado de letras"
     >
-      {ALPHABET.map((letter) => {
-        const isHit = correctSet.has(letter);
-        const isMiss = wrongSet.has(letter);
-        const isUsed = isHit || isMiss;
+      {QWERTY_ROWS.map((row, r) => (
+        <div key={r} className="flex justify-center gap-1">
+          {row.map((letter) => {
+            const isHit = correctSet.has(letter);
+            const isMiss = wrongSet.has(letter);
+            const isUsed = isHit || isMiss;
 
-        let stateClass =
-          "border-line bg-white text-ink shadow-press hover:bg-warm active:translate-y-0.5";
-        if (isHit) {
-          stateClass = "border-[#B8E2AE] bg-[#DDF2D8] text-primary-dark";
-        } else if (isMiss) {
-          stateClass = "border-[#F7C3C7] bg-[#FCE4E6] text-danger/70 opacity-60";
-        }
+            let stateClass =
+              "border-line bg-white text-ink shadow-press hover:bg-warm active:translate-y-0.5";
+            if (isHit) {
+              stateClass = "border-[#B8E2AE] bg-[#DDF2D8] text-primary-dark";
+            } else if (isMiss) {
+              stateClass = "border-[#F7C3C7] bg-[#FCE4E6] text-danger/70 opacity-60";
+            }
 
-        return (
-          <button
-            key={letter}
-            type="button"
-            disabled={disabled || isUsed}
-            onClick={() => onSelect(letter)}
-            aria-label={`Letra ${letter}${isHit ? ", correcta" : isMiss ? ", incorrecta" : ""}`}
-            className={`flex min-h-[42px] items-center justify-center rounded-xl border font-display text-sm font-bold transition-transform duration-150 disabled:cursor-not-allowed disabled:shadow-none ${stateClass}`}
-          >
-            {letter}
-          </button>
-        );
-      })}
+            return (
+              <button
+                key={letter}
+                type="button"
+                disabled={disabled || isUsed}
+                onClick={() => onSelect(letter)}
+                aria-label={`Letra ${letter}${isHit ? ", correcta" : isMiss ? ", incorrecta" : ""}`}
+                className={`flex min-h-[46px] w-[calc((100%-36px)/10)] max-w-[44px] items-center justify-center rounded-lg border font-display text-base font-bold transition-transform duration-150 disabled:cursor-not-allowed disabled:shadow-none ${stateClass}`}
+              >
+                {letter}
+              </button>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }

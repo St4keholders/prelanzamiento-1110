@@ -13,15 +13,9 @@ import type {
 import { bonusGuess, bonusStart, getBonusForState, resolveBonusRound } from "@/lib/bonus";
 import { GameError } from "@/lib/game-error";
 import { supabaseAdmin } from "@/lib/supabase";
-import {
-  LAST_DATE,
-  START,
-  allGameDates,
-  getDayNumber,
-  getGameDate,
-  getPhase,
-  nextMidnightBogota,
-} from "@/lib/time";
+import { type DayWindow, currentWindow, schedulePhase, windowFor } from "@/lib/schedule";
+import { getSchedule } from "@/lib/schedule-server";
+import { LAST_DATE, allGameDates, getDayNumber, nextMidnightBogota } from "@/lib/time";
 import { buildMask, classifyGuesses } from "@/lib/word";
 import { isMultiWinnerDay, titleStatus } from "@/lib/winner-rules";
 import { getOfficialWinners } from "@/lib/winners";
@@ -158,8 +152,10 @@ async function buildActiveState(
   player: PublicPlayer,
   word: WordRow,
   play: PlayRow | null,
+  schedule: DayWindow[],
 ): Promise<GameState> {
-  const today = getGameDate(now);
+  const current = currentWindow(schedule, now);
+  const own = windowFor(schedule, word.game_date);
   const finished = play !== null && play.status !== "playing";
   return {
     phase: "active",
@@ -175,8 +171,9 @@ async function buildActiveState(
       isLastDay: word.game_date === LAST_DATE,
     },
     play: play ? toPublicPlay(play, word) : null,
-    isToday: word.game_date === today,
-    nextWordAt: nextMidnightBogota(now).toISOString(),
+    isToday: word.game_date === current?.date,
+    // When the next word comes out (= end of this word's window).
+    nextWordAt: (own?.endsAt ?? nextMidnightBogota(now)).toISOString(),
     result: finished ? await getPlayResult(pid, word.game_date) : null,
     bonus: await getBonusForState(pid, now, word.game_date, finished),
   };
@@ -186,10 +183,16 @@ async function buildActiveState(
 async function resolveDate(pid: string, now: Date): Promise<string> {
   const running = await findRunningPlay(pid, now);
   if (running) return running.game_date;
-  if (getPhase(now) !== "active") {
+  const current = currentWindow(await getSchedule(), now);
+  if (!current) {
     throw new GameError("not_active", "El reto no está activo en este momento.", 403);
   }
-  return getGameDate(now);
+  return current.date;
+}
+
+/** Date of the word that can be played right now (null outside the challenge). */
+export async function currentGameDate(now: Date): Promise<string | null> {
+  return currentWindow(await getSchedule(), now)?.date ?? null;
 }
 
 export async function getGameState(pid: string): Promise<GameState> {
@@ -197,22 +200,29 @@ export async function getGameState(pid: string): Promise<GameState> {
   if (!participant) throw new GameError("unauthorized", "Sesión no válida.", 401);
   const player = toPublicPlayer(participant);
   const now = serverNow();
+  const schedule = await getSchedule();
 
   const running = await findRunningPlay(pid, now);
   if (running) {
     const word = await getWord(running.game_date);
-    if (word) return buildActiveState(pid, now, player, word, running);
+    if (word) return buildActiveState(pid, now, player, word, running, schedule);
   }
 
-  const phase = getPhase(now);
+  const phase = schedulePhase(schedule, now);
   if (phase === "before") {
-    return { phase, serverNow: now.toISOString(), player, startsAt: START.toISOString() };
+    return {
+      phase,
+      serverNow: now.toISOString(),
+      player,
+      startsAt: schedule[0].startsAt.toISOString(),
+    };
   }
-  if (phase === "ended") {
-    return { phase, serverNow: now.toISOString(), player };
+  const current = currentWindow(schedule, now);
+  if (phase === "ended" || !current) {
+    return { phase: "ended", serverNow: now.toISOString(), player };
   }
 
-  const date = getGameDate(now);
+  const date = current.date;
   const word = await getWord(date);
   if (!word) {
     return {
@@ -220,11 +230,11 @@ export async function getGameState(pid: string): Promise<GameState> {
       noWord: true,
       serverNow: now.toISOString(),
       player,
-      nextWordAt: nextMidnightBogota(now).toISOString(),
+      nextWordAt: current.endsAt.toISOString(),
     };
   }
   const play = await refreshPlay(pid, date);
-  return buildActiveState(pid, now, player, word, play);
+  return buildActiveState(pid, now, player, word, play, schedule);
 }
 
 function mapRpcError(message: string): GameError {
@@ -241,7 +251,14 @@ async function stateAfter(pid: string, date: string, play: PlayRow): Promise<Gam
   const [participant, word] = await Promise.all([getParticipant(pid), getWord(date)]);
   if (!participant) throw new GameError("unauthorized", "Sesión no válida.", 401);
   if (!word) throw new GameError("no_word", "La palabra de hoy aún no está disponible.", 409);
-  return buildActiveState(pid, serverNow(), toPublicPlayer(participant), word, play);
+  return buildActiveState(
+    pid,
+    serverNow(),
+    toPublicPlayer(participant),
+    word,
+    play,
+    await getSchedule(),
+  );
 }
 
 export async function startGame(pid: string): Promise<GameState> {
@@ -273,14 +290,14 @@ export async function guessLetter(pid: string, letter: string): Promise<GameStat
 
 export async function startBonus(pid: string): Promise<GameState> {
   const now = serverNow();
-  const roundId = await resolveBonusRound(pid, now, getGameDate(now));
+  const roundId = await resolveBonusRound(pid, now, (await currentGameDate(now)) ?? "");
   await bonusStart(pid, roundId);
   return getGameState(pid);
 }
 
 export async function guessBonusLetter(pid: string, letter: string): Promise<GameState> {
   const now = serverNow();
-  const roundId = await resolveBonusRound(pid, now, getGameDate(now));
+  const roundId = await resolveBonusRound(pid, now, (await currentGameDate(now)) ?? "");
   await bonusGuess(pid, roundId, letter);
   return getGameState(pid);
 }

@@ -120,6 +120,7 @@ export type Database = {
           category: string
           game_date: string
           max_errors: number
+          starts_at: string
           time_limit_seconds: number
           word: string
         }
@@ -127,6 +128,7 @@ export type Database = {
           category: string
           game_date: string
           max_errors?: number
+          starts_at: string
           time_limit_seconds?: number
           word: string
         }
@@ -134,6 +136,7 @@ export type Database = {
           category?: string
           game_date?: string
           max_errors?: number
+          starts_at?: string
           time_limit_seconds?: number
           word?: string
         }
@@ -283,6 +286,7 @@ export type Database = {
           wrong_count: number
         }[]
       }
+      ahd_current_date: { Args: { p_now?: string }; Returns: string }
       ahd_normalize: { Args: { p_text: string }; Returns: string }
       ahd_win_code: { Args: never; Returns: string }
       ahd_word_letters: { Args: { p_word: string }; Returns: string[] }

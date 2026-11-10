@@ -19,9 +19,9 @@ import {
   formatDateTimeBogota,
   formatDuration,
   getDayNumber,
-  getGameDate,
   isGameDate,
 } from "@/lib/time";
+import { currentGameDate } from "@/lib/game";
 
 interface SearchProps {
   searchParams: Promise<{ date?: string; q?: string; page?: string }>;
@@ -31,8 +31,8 @@ async function ResultadosContent({ searchParams }: SearchProps) {
   if (!(await isAdmin())) redirect("/admin/login");
 
   const params = await searchParams;
-  const todayBogota = getGameDate(serverNow());
-  const defaultDate = isGameDate(todayBogota) ? todayBogota : FIRST_DATE;
+  const activeDate = await currentGameDate(serverNow());
+  const defaultDate = activeDate && isGameDate(activeDate) ? activeDate : FIRST_DATE;
   const selectedDate = params.date && isGameDate(params.date) ? params.date : defaultDate;
   const q = (params.q ?? "").trim();
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);

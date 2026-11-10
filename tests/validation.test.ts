@@ -63,6 +63,7 @@ describe("dailyWordSchema", () => {
       word: "RETENCIÓN EN LA FUENTE",
       category: "Impuestos nacionales",
       timeLimitSeconds: 90,
+      startTime: "00:00",
     });
     expect(dailyWordSchema.safeParse({ date: "2026-11-05", word: "año-base", category: "Renta" })
       .success).toBe(true);
@@ -91,5 +92,17 @@ describe("dailyWordSchema timeLimitSeconds", () => {
     expect(dailyWordSchema.safeParse({ ...base, timeLimitSeconds: 10 }).success).toBe(false);
     expect(dailyWordSchema.safeParse({ ...base, timeLimitSeconds: 600 }).success).toBe(false);
     expect(dailyWordSchema.safeParse({ ...base, timeLimitSeconds: 90.5 }).success).toBe(false);
+  });
+});
+
+describe("dailyWordSchema startTime", () => {
+  const base = { date: "2026-11-12", word: "IVA", category: "Renta" };
+  it("accepts HH:MM and defaults to midnight", () => {
+    expect(dailyWordSchema.parse(base).startTime).toBe("00:00");
+    expect(dailyWordSchema.parse({ ...base, startTime: "12:00" }).startTime).toBe("12:00");
+  });
+  it("rejects invalid hours", () => {
+    expect(dailyWordSchema.safeParse({ ...base, startTime: "24:00" }).success).toBe(false);
+    expect(dailyWordSchema.safeParse({ ...base, startTime: "9:00" }).success).toBe(false);
   });
 });
