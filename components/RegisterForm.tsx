@@ -5,13 +5,30 @@ import { useState, type FormEvent } from "react";
 
 interface RegisterFormProps {
   onAuthenticated: () => void;
+  /** "game" = Ahorcadito Diario (4–14 nov); "event" = evento de lanzamiento (reservas de mesa). */
+  variant?: "game" | "event";
 }
 
-export function RegisterForm({ onAuthenticated }: RegisterFormProps) {
+const PROFESSIONS = [
+  "Contador(a) público(a)",
+  "Estudiante de contaduría",
+  "Auxiliar contable",
+  "Revisor(a) fiscal",
+  "Auditor(a)",
+  "Asesor(a) tributario(a)",
+  "Administrador(a) de empresas",
+  "Economista",
+  "Financiero(a)",
+  "Emprendedor(a)",
+];
+
+export function RegisterForm({ onAuthenticated, variant = "game" }: RegisterFormProps) {
+  const isEvent = variant === "event";
   const [step, setStep] = useState<"email" | "profile">("email");
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [profession, setProfession] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +73,7 @@ export function RegisterForm({ onAuthenticated }: RegisterFormProps) {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, fullName, phone }),
+        body: JSON.stringify(isEvent ? { email, fullName, phone, profession } : { email, fullName, phone }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -76,22 +93,26 @@ export function RegisterForm({ onAuthenticated }: RegisterFormProps) {
       <div className="flex flex-col items-center text-center gap-2 mb-5">
         <Image
           src="/mascot-waving.png"
-          alt="Mascota 11Diez saludando"
+          alt="Ardilla 11Diez saludando"
           width={76}
           height={76}
           priority
           className="h-19 w-19 object-contain"
         />
         <span className="rounded-full bg-sage border border-[#D4DEAF] px-3 py-0.5 font-display text-[11px] font-bold uppercase tracking-wider text-primary">
-          4 al 14 de noviembre · 11 días
+          {isEvent ? "Evento presencial · Medellín" : "4 al 14 de noviembre · 11 días"}
         </span>
         <h1 className="font-display text-2xl font-extrabold text-primary-dark">
-          Ahorcadito Diario 11Diez
+          {isEvent ? "Lanzamiento 1110" : "Ahorcadito Diario 11Diez"}
         </h1>
         <p className="text-sm text-muted max-w-xs">
-          {step === "email"
-            ? "Ingresa con tu correo para jugar la palabra del día."
-            : "Completa tus datos una sola vez para quedar inscrito en el reto."}
+          {isEvent
+            ? step === "email"
+              ? "Entra con tu correo para reservar tu mesa o unirte a la de tu team."
+              : "Es tu primera vez por aquí: déjanos tus datos para apartar tu puesto."
+            : step === "email"
+              ? "Ingresa con tu correo para jugar la palabra del día."
+              : "Completa tus datos una sola vez para quedar inscrito en el reto."}
         </p>
       </div>
 
@@ -165,7 +186,7 @@ export function RegisterForm({ onAuthenticated }: RegisterFormProps) {
 
           <div>
             <label htmlFor="phone" className="block text-xs font-bold text-ink mb-1">
-              Número de celular
+              {isEvent ? "Teléfono de contacto" : "Número de celular"}
             </label>
             <input
               id="phone"
@@ -181,6 +202,32 @@ export function RegisterForm({ onAuthenticated }: RegisterFormProps) {
             />
           </div>
 
+          {isEvent && (
+            <div>
+              <label htmlFor="profession" className="block text-xs font-bold text-ink mb-1">
+                Profesión
+              </label>
+              <input
+                id="profession"
+                name="profession"
+                type="text"
+                required
+                minLength={2}
+                maxLength={80}
+                list="profession-options"
+                value={profession}
+                onChange={(e) => setProfession(e.target.value)}
+                placeholder="Ej. Contador(a) público(a)"
+                className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm font-medium text-ink placeholder:text-muted/60 focus:border-primary"
+              />
+              <datalist id="profession-options">
+                {PROFESSIONS.map((p) => (
+                  <option key={p} value={p} />
+                ))}
+              </datalist>
+            </div>
+          )}
+
           {error && (
             <p role="alert" className="rounded-xl bg-danger/10 px-3 py-2 text-xs font-bold text-danger">
               {error}
@@ -192,7 +239,7 @@ export function RegisterForm({ onAuthenticated }: RegisterFormProps) {
             disabled={loading}
             className="w-full rounded-2xl bg-cta px-5 py-3.5 font-display text-sm font-extrabold uppercase tracking-wide text-white shadow-soft transition hover:brightness-95 active:translate-y-0.5 disabled:opacity-60"
           >
-            {loading ? "Inscribiendo..." : "Empezar"}
+            {isEvent ? (loading ? "Guardando..." : "Continuar") : loading ? "Inscribiendo..." : "Empezar"}
           </button>
         </form>
       )}

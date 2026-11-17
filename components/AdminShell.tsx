@@ -36,9 +36,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             />
             <div>
               <p className="font-display text-sm font-extrabold text-primary-dark leading-tight">
-                Panel Admin · Ahorcadito Diario
+                Panel Admin · 1110
               </p>
-              <p className="text-[11px] font-medium text-muted">4 al 14 de noviembre de 2026</p>
+              <p className="text-[11px] font-medium text-muted">Ahorcadito (4–14 nov) · Lanzamiento (28 nov)</p>
             </div>
           </div>
 

@@ -15,8 +15,8 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Ahorcadito Diario · 11Diez",
-  description: "Una palabra nueva cada día del 4 al 14 de noviembre. ¡Adivínala antes de que se acabe el tiempo!",
+  title: "Lanzamiento 1110 · 11Diez",
+  description: "Reserva tu mesa con tu Team de Ardillas para el evento de lanzamiento de 1110 en Medellín.",
   icons: { icon: "/logo.png" },
 };
 

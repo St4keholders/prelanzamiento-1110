@@ -39,10 +39,23 @@ export const fullNameSchema = z
       .max(120, { message: "El nombre es demasiado largo." }),
   );
 
+export const professionSchema = z
+  .string({ message: "Escribe tu profesión." })
+  .trim()
+  .transform((v) => v.replace(/\s+/g, " "))
+  .pipe(
+    z
+      .string()
+      .min(2, { message: "Escribe tu profesión." })
+      .max(80, { message: "La profesión es muy larga (máximo 80 caracteres)." }),
+  );
+
 export const registerSchema = z.object({
   email: emailSchema,
   fullName: fullNameSchema,
   phone: phoneSchema,
+  /** Solo la pide el registro del evento de lanzamiento. */
+  profession: professionSchema.optional(),
 });
 
 export const guessSchema = z.object({
@@ -126,17 +139,6 @@ const teamFields = {
     .max(60, { message: "El lema es muy largo (máximo 60 caracteres)." })
     .default(""),
 };
-
-export const professionSchema = z
-  .string({ message: "Escribe tu profesión." })
-  .trim()
-  .transform((v) => v.replace(/\s+/g, " "))
-  .pipe(
-    z
-      .string()
-      .min(2, { message: "Escribe tu profesión." })
-      .max(80, { message: "La profesión es muy larga (máximo 80 caracteres)." }),
-  );
 
 /** Datos que deja todo el que reserva o se une a una mesa (el correo es el de su sesión). */
 const contactFields = {

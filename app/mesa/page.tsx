@@ -10,7 +10,7 @@ async function Content() {
   if (!pid) {
     return (
       <Card tone="warm">
-        <LoginGate intro="Entra con el correo con el que te inscribiste para reservar o ver tu mesa." />
+        <LoginGate intro="Reserva tu mesa o mira la de tu team." />
       </Card>
     );
   }

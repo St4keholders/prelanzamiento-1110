@@ -49,7 +49,7 @@ export default function AdminLoginPage() {
           <h1 className="font-display text-xl font-extrabold text-primary-dark">
             Administración · 11Diez
           </h1>
-          <p className="text-xs text-muted">Ahorcadito Diario (4 al 14 de noviembre)</p>
+          <p className="text-xs text-muted">Prelanzamiento 1110</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3.5">

@@ -6,7 +6,7 @@ import { firstIssue, registerSchema } from "@/lib/validation";
 export async function POST(request: Request) {
   const parsed = registerSchema.safeParse(await readJson(request));
   if (!parsed.success) return jsonError("invalid", firstIssue(parsed.error), 400);
-  const { email, fullName, phone } = parsed.data;
+  const { email, fullName, phone, profession } = parsed.data;
 
   try {
     const db = supabaseAdmin();
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     const { data: inserted, error: insertError } = await db
       .from("participants")
       .upsert(
-        { email, full_name: fullName, phone },
+        { email, full_name: fullName, phone, ...(profession ? { profession } : {}) },
         { onConflict: "email", ignoreDuplicates: true },
       )
       .select("id")

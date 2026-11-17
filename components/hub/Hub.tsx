@@ -31,7 +31,7 @@ export function Hub({ event, fullName, myTeam, hasInvite }: HubProps) {
         />
         <div>
           <p className="font-display text-[11px] font-extrabold uppercase tracking-wider text-primary">
-            {fullName ? `Hola, ${fullName.split(" ")[0]}` : "El Ahorcadito terminó"}
+            {fullName ? `Hola, ${fullName.split(" ")[0]}` : "Evento de lanzamiento"}
           </p>
           <h1 className="font-display text-xl font-extrabold leading-tight text-primary-dark">
             ¡Nos vemos en el {event.title}!
