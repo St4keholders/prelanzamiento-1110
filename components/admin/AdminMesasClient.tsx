@@ -131,6 +131,18 @@ function TeamCard({
 }) {
   const [confirmRelease, setConfirmRelease] = useState(false);
   const [email, setEmail] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  async function copyLink() {
+    const url = `${window.location.origin}/m/${team.joinCode}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      window.prompt("Copia el link de invitación:", url);
+    }
+  }
   const others = teams.filter((t) => t.id !== team.id);
   const used = team.members.length + team.invites.length;
 
@@ -216,6 +228,15 @@ function TeamCard({
           </button>
         </form>
       )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" className={btn} onClick={copyLink}>
+          {copied ? "✅ Link copiado" : "🔗 Copiar link de invitación"}
+        </button>
+        <a className={btn} href={`/api/admin/team-card?code=${team.joinCode}`}>
+          ⬇ Descargar tarjeta del team
+        </a>
+      </div>
 
       <div className="flex flex-wrap items-center gap-2 border-t border-line pt-2">
         {others.length > 0 && (

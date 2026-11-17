@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
     "/api/game/share-image": ["./assets/share/**/*"],
     "/api/ranking/image": ["./assets/share/**/*"],
     "/api/teams-card": ["./assets/share/**/*"],
+    "/api/admin/team-card": ["./assets/share/**/*"],
   },
   partialPrefetching: true,
   turbopack: {
