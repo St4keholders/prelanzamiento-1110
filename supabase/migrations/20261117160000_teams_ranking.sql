@@ -379,7 +379,7 @@ returns table (
   best_ms int,
   lives_lost int,
   registered_at timestamptz,
-  position bigint
+  rank_position bigint
 )
 language sql
 stable

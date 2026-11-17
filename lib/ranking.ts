@@ -19,7 +19,7 @@ interface RankRpcRow {
   total_ms: number;
   best_ms: number | null;
   lives_lost: number;
-  position: number;
+  rank_position: number;
 }
 
 const CACHE_MS = 30_000;
@@ -33,7 +33,7 @@ export async function getRanking(): Promise<(RankingRow & { participantId: strin
   const rows = ((data ?? []) as RankRpcRow[])
     .map((r) => ({
       participantId: r.participant_id,
-      position: Number(r.position),
+      position: Number(r.rank_position),
       name: r.full_name,
       won: r.won,
       played: r.played,
