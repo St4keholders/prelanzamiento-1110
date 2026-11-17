@@ -66,8 +66,14 @@ async function Content({ params }: { params: Promise<{ code: string }> }) {
           <p className="text-sm font-semibold text-ink">Este team ya no tiene puestos libres.</p>
         </Card>
       );
+    } else if (mesa) {
+      action = <JoinClient code={code} color={colorHex(team.color)} me={mesa.me} />;
     } else {
-      action = <JoinClient code={code} color={colorHex(team.color)} />;
+      action = (
+        <Card tone="warm">
+          <p className="text-sm font-semibold text-ink">No pudimos cargar tus datos. Recarga la página.</p>
+        </Card>
+      );
     }
   }
 

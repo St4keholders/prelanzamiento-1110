@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { LookEditor } from "@/components/mesa/LookEditor";
+import { ContactFields, contactFrom } from "@/components/mesa/ContactFields";
 import { ColorPicker, FlagPicker } from "@/components/mesa/Pickers";
 import { TeamPreview } from "@/components/mesa/TeamPreview";
 import { ShareButton } from "@/components/ranking/ShareButton";
 import { Flag } from "@/components/teams/Art";
 import { formatEventDate, formatShortDateTime } from "@/lib/event-format";
 import { DEFAULT_LOOK } from "@/lib/squirrel-look";
-import type { MesaState, PublicTeam } from "@/lib/team-types";
+import type { MesaState, MyContact, PublicTeam } from "@/lib/team-types";
 import { colorHex } from "@/lib/teams-catalog";
 
 const input =
@@ -101,7 +102,7 @@ export function MesaClient({ initial }: { initial: MesaState }) {
       )}
 
       {team ? (
-        <MyTeam team={team} open={event.reservationsOpen} busy={busy} act={act} />
+        <MyTeam team={team} me={state.me} open={event.reservationsOpen} busy={busy} act={act} />
       ) : invite ? (
         <InviteView state={state} busy={busy} act={act} />
       ) : !event.reservationsOpen ? (
@@ -122,7 +123,7 @@ export function MesaClient({ initial }: { initial: MesaState }) {
           </Link>
         </Box>
       ) : (
-        <CreateTeam free={free} total={event.tableCount} busy={busy} act={act} />
+        <CreateTeam me={state.me} free={free} total={event.tableCount} busy={busy} act={act} />
       )}
     </div>
   );
@@ -130,7 +131,20 @@ export function MesaClient({ initial }: { initial: MesaState }) {
 
 type Act = (action: string, body?: unknown, okText?: string) => Promise<boolean>;
 
-function CreateTeam({ free, total, busy, act }: { free: number; total: number; busy: boolean; act: Act }) {
+function CreateTeam({
+  me,
+  free,
+  total,
+  busy,
+  act,
+}: {
+  me: MyContact;
+  free: number;
+  total: number;
+  busy: boolean;
+  act: Act;
+}) {
+  const [contact, setContact] = useState(() => contactFrom(me));
   const [name, setName] = useState("");
   const [flag, setFlag] = useState("partida-doble");
   const [color, setColor] = useState("verde");
@@ -139,7 +153,7 @@ function CreateTeam({ free, total, busy, act }: { free: number; total: number; b
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    await act("create", { name, flag, color, motto, squirrel }, "¡Mesa reservada! Ahora invita a tu team.");
+    await act("create", { ...contact, name, flag, color, motto, squirrel }, "¡Mesa reservada! Ahora invita a tu team.");
   }
 
   return (
@@ -152,6 +166,15 @@ function CreateTeam({ free, total, busy, act }: { free: number; total: number; b
             crear su team se queda con la mesa; tú serás el capitán.
           </p>
         </div>
+      </Box>
+      <Box>
+        <div>
+          <p className="font-display text-base font-extrabold text-primary-dark">Tus datos</p>
+          <p className="text-xs text-muted">Los necesitamos para confirmar tu puesto en el evento.</p>
+        </div>
+        <ContactFields email={me.email} value={contact} onChange={setContact} idPrefix="create" />
+      </Box>
+      <Box>
         <div>
           <label htmlFor="team-name" className={label}>Nombre del team</label>
           <input
@@ -196,6 +219,7 @@ function CreateTeam({ free, total, busy, act }: { free: number; total: number; b
 function InviteView({ state, busy, act }: { state: MesaState; busy: boolean; act: Act }) {
   const inv = state.invite!;
   const [squirrel, setSquirrel] = useState(DEFAULT_LOOK);
+  const [contact, setContact] = useState(() => contactFrom(state.me));
   return (
     <Box>
       <div className="flex items-center gap-3">
@@ -209,21 +233,24 @@ function InviteView({ state, busy, act }: { state: MesaState; busy: boolean; act
         </div>
       </div>
       {state.event.reservationsOpen ? (
-        <>
-          <p className={label}>Arma tu ardilla para aceptar</p>
+        <form
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            act("accept", { ...contact, squirrel }, "¡Ya eres parte del team!");
+          }}
+        >
+          <p className="font-display text-base font-extrabold text-primary-dark">Tus datos</p>
+          <ContactFields email={state.me.email} value={contact} onChange={setContact} idPrefix="accept" />
+          <p className={label}>Arma tu ardilla</p>
           <LookEditor value={squirrel} color={colorHex(inv.color)} onChange={setSquirrel} />
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => act("accept", { squirrel }, "¡Ya eres parte del team!")}
-            className={primaryBtn}
-          >
+          <button type="submit" disabled={busy} className={primaryBtn}>
             Aceptar invitación
           </button>
           <button type="button" disabled={busy} onClick={() => act("decline")} className={secondaryBtn}>
             Rechazar
           </button>
-        </>
+        </form>
       ) : (
         <p className="text-sm text-ink">Las reservas ya cerraron; no se puede aceptar la invitación.</p>
       )}
@@ -231,7 +258,19 @@ function InviteView({ state, busy, act }: { state: MesaState; busy: boolean; act
   );
 }
 
-function MyTeam({ team, open, busy, act }: { team: PublicTeam; open: boolean; busy: boolean; act: Act }) {
+function MyTeam({
+  team,
+  me: contactMe,
+  open,
+  busy,
+  act,
+}: {
+  team: PublicTeam;
+  me: MyContact;
+  open: boolean;
+  busy: boolean;
+  act: Act;
+}) {
   const me = team.members.find((m) => m.isMe);
   const seatsLeft = team.seatsTotal - team.seatsUsed;
   const [link, setLink] = useState<string | null>(null);
@@ -262,6 +301,8 @@ function MyTeam({ team, open, busy, act }: { team: PublicTeam; open: boolean; bu
 
   return (
     <div className="space-y-3">
+      {!contactMe.profession && <MyData me={contactMe} busy={busy} act={act} missing />}
+
       <TeamPreview team={team} />
 
       <Box tone={team.confirmed ? "sage" : "warm"}>
@@ -297,6 +338,8 @@ function MyTeam({ team, open, busy, act }: { team: PublicTeam; open: boolean; bu
       {me && open && (
         <MySquirrel current={me.squirrel} color={colorHex(team.color)} busy={busy} act={act} />
       )}
+
+      {contactMe.profession && <MyData me={contactMe} busy={busy} act={act} />}
 
       {open && (
         <Box>
@@ -452,6 +495,47 @@ function CaptainTools({
         )}
       </Box>
     </>
+  );
+}
+
+/** Datos de contacto: aviso si falta la profesión (ej. agregados desde el panel), o editables. */
+function MyData({ me, busy, act, missing = false }: { me: MyContact; busy: boolean; act: Act; missing?: boolean }) {
+  const [open, setOpen] = useState(missing);
+  const [contact, setContact] = useState(() => contactFrom(me));
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className={secondaryBtn}>
+        ✏️ Mis datos de contacto
+      </button>
+    );
+  }
+  return (
+    <form
+      onSubmit={async (e) => {
+        e.preventDefault();
+        if ((await act("profile", contact, "Tus datos quedaron guardados.")) && !missing) setOpen(false);
+      }}
+    >
+      <Box tone={missing ? "warm" : "white"}>
+        <div>
+          <p className="font-display text-base font-extrabold text-primary-dark">
+            {missing ? "⚠️ Completa tus datos" : "Mis datos de contacto"}
+          </p>
+          {missing && (
+            <p className="text-xs text-ink">Los necesitamos para confirmar tu puesto en el evento.</p>
+          )}
+        </div>
+        <ContactFields email={me.email} value={contact} onChange={setContact} idPrefix="me" />
+        <button type="submit" disabled={busy} className={primaryBtn}>
+          Guardar mis datos
+        </button>
+        {!missing && (
+          <button type="button" onClick={() => setOpen(false)} className={secondaryBtn}>
+            Cancelar
+          </button>
+        )}
+      </Box>
+    </form>
   );
 }
 
