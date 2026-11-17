@@ -57,7 +57,7 @@ function GameSkeleton() {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center px-4">
       <div className="w-full rounded-3xl border border-line bg-warm p-6 text-center shadow-soft">
-        <p className="font-display text-sm font-bold text-primary">Cargando Ahorcadito Diario…</p>
+        <p className="font-display text-sm font-bold text-primary">Cargando…</p>
       </div>
     </div>
   );

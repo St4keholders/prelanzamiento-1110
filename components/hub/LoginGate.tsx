@@ -9,7 +9,7 @@ export function LoginGate({ intro }: { intro?: string }) {
   return (
     <div className="space-y-3">
       {intro && <p className="text-center text-sm font-semibold text-ink">{intro}</p>}
-      <RegisterForm onAuthenticated={() => router.refresh()} />
+      <RegisterForm variant="event" onAuthenticated={() => router.refresh()} />
     </div>
   );
 }
