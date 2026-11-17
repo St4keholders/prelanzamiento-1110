@@ -153,7 +153,7 @@ export async function renderTeamCard(team: PublicTeam, eventLine: string): Promi
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Pill text={`MESA ${team.tableNumber}`} />
+          <Pill text={team.staff ? `MESA ${team.tableNumber} · EQUIPO 1110` : `MESA ${team.tableNumber}`} />
           <div style={{ display: "flex", fontSize: 40, fontWeight: 700, color: CREAM }}>@11diez</div>
         </div>
 

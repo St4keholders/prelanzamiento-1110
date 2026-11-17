@@ -5,7 +5,7 @@ import { formatMs } from "@/lib/event-format";
 import { getRanking } from "@/lib/ranking";
 import { supabaseAdmin } from "@/lib/supabase";
 import { TeamError } from "@/lib/team-error";
-import { lookName } from "@/lib/squirrel-look";
+import { DEFAULT_LOOK, lookName } from "@/lib/squirrel-look";
 import { colorHex, flagName } from "@/lib/teams-catalog";
 import { getEventRow } from "@/lib/teams";
 
@@ -30,6 +30,7 @@ export interface AdminMember {
 export interface AdminTeam {
   id: string;
   tableNumber: number;
+  staff: boolean;
   name: string;
   flag: string;
   color: string;
@@ -73,6 +74,7 @@ export async function getAdminMesas(): Promise<AdminMesas> {
       return {
         id: t.id,
         tableNumber: t.table_number,
+        staff: t.staff === true,
         name: t.name,
         flag: t.flag,
         color: t.color,
@@ -197,6 +199,99 @@ export async function adminMergeTeams(sourceId: string, targetId: string): Promi
   await db().from("teams").delete().eq("id", sourceId);
 }
 
+/** Registered participant by email who is not yet in any team. */
+async function freeParticipant(email: string): Promise<{ id: string; full_name: string; email: string }> {
+  const { data } = await db()
+    .from("participants")
+    .select("id, full_name, email")
+    .eq("email", email)
+    .maybeSingle();
+  if (!data) {
+    throw bad(`${email} todavía no se ha registrado. Que entre a la página, se registre con ese correo y lo vuelves a agregar.`);
+  }
+  const { data: m } = await db().from("team_members").select("team_id").eq("participant_id", data.id).maybeSingle();
+  if (m) throw bad(`${data.full_name} ya está en un team. Sácalo o muévelo primero.`);
+  return data;
+}
+
+function newCode(): string {
+  const abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from({ length: 6 }, () => abc[Math.floor(Math.random() * abc.length)]).join("");
+}
+
+/**
+ * Crea la mesa del equipo 1110: una mesa extra (la siguiente a las públicas, ej. Mesa 11)
+ * que no le quita puesto a los jugadores. `captainEmail` debe estar registrado.
+ */
+export async function adminCreateStaffTeam(input: {
+  name: string;
+  flag: string;
+  color: string;
+  motto: string;
+  captainEmail: string;
+}): Promise<void> {
+  const { data: existing } = await db().from("teams").select("table_number").eq("staff", true).maybeSingle();
+  if (existing) throw bad(`La mesa del equipo 1110 ya existe (Mesa ${existing.table_number}).`);
+  const [ev, captain, maxRow] = await Promise.all([
+    getEventRow(),
+    freeParticipant(input.captainEmail),
+    db().from("teams").select("table_number").order("table_number", { ascending: false }).limit(1),
+  ]);
+  const maxUsed = (maxRow.data?.[0]?.table_number as number | undefined) ?? 0;
+  const tableNumber = Math.max(ev.table_count, maxUsed) + 1;
+
+  let team: { id: string } | null = null;
+  for (let i = 0; i < 5 && !team; i++) {
+    const { data, error } = await db()
+      .from("teams")
+      .insert({
+        table_number: tableNumber,
+        staff: true,
+        name: input.name,
+        flag: input.flag,
+        color: input.color,
+        motto: input.motto,
+        captain_id: captain.id,
+        join_code: newCode(),
+      })
+      .select("id")
+      .single();
+    if (error && !/join_code/.test(error.message)) throw bad(error.message);
+    team = data;
+  }
+  if (!team) throw bad("No se pudo crear la mesa. Intenta otra vez.");
+
+  await db().from("team_invites").delete().eq("email", captain.email);
+  const { error } = await db()
+    .from("team_members")
+    .insert({ team_id: team.id, participant_id: captain.id, squirrel: DEFAULT_LOOK });
+  if (error) {
+    await db().from("teams").delete().eq("id", team.id);
+    throw bad(error.message);
+  }
+}
+
+/** Mete directo a una persona registrada en un team (sin invitación ni ventana de reservas). */
+export async function adminAddMember(teamId: string, email: string): Promise<void> {
+  const ev = await getEventRow();
+  await teamRow(teamId);
+  const person = await freeParticipant(email);
+  const { data: ownInvite } = await db()
+    .from("team_invites")
+    .select("id, team_id")
+    .eq("email", person.email)
+    .maybeSingle();
+  const freed = ownInvite?.team_id === teamId ? 1 : 0;
+  if ((await seatsUsed(teamId)) - freed >= ev.seats_per_table) {
+    throw bad("Esa mesa ya no tiene puestos libres.");
+  }
+  if (ownInvite) await db().from("team_invites").delete().eq("id", ownInvite.id);
+  const { error } = await db()
+    .from("team_members")
+    .insert({ team_id: teamId, participant_id: person.id, squirrel: DEFAULT_LOOK });
+  if (error) throw bad(error.message);
+}
+
 export async function adminCancelInvite(inviteId: string): Promise<void> {
   await db().from("team_invites").delete().eq("id", inviteId);
 }
@@ -218,6 +313,7 @@ export async function adminUpdateEvent(input: {
   const { data: maxRow } = await db()
     .from("teams")
     .select("table_number")
+    .eq("staff", false)
     .order("table_number", { ascending: false })
     .limit(1);
   const maxUsed = (maxRow?.[0]?.table_number as number | undefined) ?? 0;
@@ -249,7 +345,7 @@ export async function mesasSheet(): Promise<Sheet> {
   const { event, teams } = await getAdminMesas();
   const rows: (string | number)[][] = [];
   for (const t of teams) {
-    const status = t.confirmed ? "Confirmada" : "Incompleta";
+    const status = `${t.confirmed ? "Confirmada" : "Incompleta"}${t.staff ? " · Equipo 1110" : ""}`;
     for (const m of t.members) {
       rows.push([
         t.tableNumber, t.name, status, flagName(t.flag), t.motto,
@@ -261,7 +357,7 @@ export async function mesasSheet(): Promise<Sheet> {
     }
   }
   return {
-    name: `Mesas (${teams.length} de ${event.table_count})`,
+    name: `Mesas (${teams.filter((t) => !t.staff).length} de ${event.table_count})`,
     columns: ["Mesa", "Team", "Estado mesa", "Bandera", "Lema", "Rol", "Nombre", "Correo", "Celular", "Ardilla", "Estado"],
     rows,
   };

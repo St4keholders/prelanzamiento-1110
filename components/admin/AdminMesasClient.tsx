@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Flag } from "@/components/teams/Art";
 import { SquirrelFigure } from "@/components/teams/SquirrelFigure";
+import { FlagPicker, ColorPicker } from "@/components/mesa/Pickers";
 import type { AdminMesas, AdminTeam } from "@/lib/teams-admin";
+import { colorHex } from "@/lib/teams-catalog";
 
 /** ISO → "YYYY-MM-DDTHH:MM" in hora Colombia (UTC−5) for <input type="datetime-local">. */
 function toLocal(iso: string): string {
@@ -47,7 +49,9 @@ export function AdminMesasClient({ data }: { data: AdminMesas }) {
     }
   }
 
-  const { event, teams } = data;
+  const { event } = data;
+  const teams = data.teams.filter((t) => !t.staff);
+  const staff = data.teams.find((t) => t.staff) ?? null;
   const byTable = new Map(teams.map((t) => [t.tableNumber, t]));
   const confirmed = teams.filter((t) => t.confirmed).length;
   const people = teams.reduce((n, t) => n + t.members.length, 0);
@@ -80,11 +84,25 @@ export function AdminMesasClient({ data }: { data: AdminMesas }) {
 
       <EventForm data={data} busy={busy} act={act} />
 
+      <section className="space-y-2">
+        <h2 className="font-display text-lg font-extrabold text-primary-dark">🐿️ Mesa del equipo 1110</h2>
+        <p className="text-xs text-muted">
+          Mesa extra para los admins: no cuenta dentro de las {event.table_count} mesas de los jugadores.
+        </p>
+        {staff ? (
+          <TeamCard team={staff} teams={data.teams} seats={event.seats_per_table} busy={busy} act={act} />
+        ) : (
+          <StaffForm nextNumber={event.table_count + 1} busy={busy} act={act} />
+        )}
+      </section>
+
+      <h2 className="font-display text-lg font-extrabold text-primary-dark">Mesas de los jugadores</h2>
+
       <div className="grid gap-3 md:grid-cols-2">
         {Array.from({ length: event.table_count }, (_, i) => i + 1).map((n) => {
           const t = byTable.get(n);
           return t ? (
-            <TeamCard key={n} team={t} teams={teams} seats={event.seats_per_table} busy={busy} act={act} />
+            <TeamCard key={n} team={t} teams={data.teams} seats={event.seats_per_table} busy={busy} act={act} />
           ) : (
             <div key={n} className="rounded-3xl border-2 border-dashed border-line bg-white/60 p-4">
               <p className="font-display text-sm font-extrabold text-muted">Mesa {n} · ⚪ Libre</p>
@@ -112,8 +130,15 @@ function TeamCard({
   act: Act;
 }) {
   const [confirmRelease, setConfirmRelease] = useState(false);
+  const [email, setEmail] = useState("");
   const others = teams.filter((t) => t.id !== team.id);
   const used = team.members.length + team.invites.length;
+
+  async function addMember(ev: FormEvent) {
+    ev.preventDefault();
+    await act("add-member", { teamId: team.id, email }, `${email} quedó dentro de ${team.name}.`);
+    setEmail("");
+  }
 
   return (
     <div className="space-y-2 rounded-3xl border border-line bg-white p-4 shadow-soft" style={{ borderTop: `6px solid ${team.colorHex}` }}>
@@ -121,7 +146,7 @@ function TeamCard({
         <Flag kind={team.flag} color={team.colorHex} size={56} />
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-extrabold uppercase tracking-wider text-muted">
-            Mesa {team.tableNumber} · {team.confirmed ? "🟢 Confirmada" : `🟡 Incompleta (${team.members.length}/${seats})`} · código {team.joinCode}
+            Mesa {team.tableNumber}{team.staff ? " · Equipo 1110" : ""} · {team.confirmed ? "🟢 Confirmada" : `🟡 Incompleta (${team.members.length}/${seats})`} · código {team.joinCode}
           </p>
           <p className="font-display text-base font-extrabold text-primary-dark">{team.name}</p>
           {team.motto && <p className="text-xs text-muted">“{team.motto}”</p>}
@@ -175,6 +200,22 @@ function TeamCard({
         ))}
       </ul>
       <p className="text-xs text-muted">{used} de {seats} puestos ocupados (incluye invitaciones).</p>
+      {used < seats && (
+        <form onSubmit={addMember} className="flex flex-wrap items-center gap-2">
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="correo@registrado.com"
+            aria-label={`Agregar a ${team.name} por correo`}
+            className="min-w-0 flex-1 rounded-xl border border-line bg-white px-2.5 py-1 text-xs"
+          />
+          <button type="submit" className={btn} disabled={busy || !email}>
+            ➕ Agregar por correo
+          </button>
+        </form>
+      )}
 
       <div className="flex flex-wrap items-center gap-2 border-t border-line pt-2">
         {others.length > 0 && (
@@ -204,6 +245,39 @@ function TeamCard({
         )}
       </div>
     </div>
+  );
+}
+
+function StaffForm({ nextNumber, busy, act }: { nextNumber: number; busy: boolean; act: Act }) {
+  const [f, setF] = useState({ name: "Equipo 1110", flag: "calculadora", color: "verde", motto: "Los que hacemos cuadrar todo", captainEmail: "" });
+
+  async function submit(ev: FormEvent) {
+    ev.preventDefault();
+    await act("staff-create", f, `Mesa ${nextNumber} creada para el equipo 1110.`);
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-3 rounded-3xl border-2 border-dashed border-primary/40 bg-white p-4">
+      <p className="text-sm text-ink">
+        Será la <strong>Mesa {nextNumber}</strong>. El capitán y cada integrante deben registrarse primero en la
+        página con su correo; luego los agregas aquí uno por uno (o se unen con el código de la mesa).
+      </p>
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="text-xs font-bold">Nombre del team<input className={field} value={f.name} maxLength={30} onChange={(e) => setF({ ...f, name: e.target.value })} required /></label>
+        <label className="text-xs font-bold">Lema (opcional)<input className={field} value={f.motto} maxLength={60} onChange={(e) => setF({ ...f, motto: e.target.value })} /></label>
+        <label className="text-xs font-bold md:col-span-2">Correo del capitán (ya registrado)<input type="email" className={field} value={f.captainEmail} onChange={(e) => setF({ ...f, captainEmail: e.target.value })} required /></label>
+      </div>
+      <div className="flex items-center gap-3">
+        <Flag kind={f.flag} color={colorHex(f.color)} size={56} />
+        <div className="min-w-0 flex-1 space-y-2">
+          <ColorPicker value={f.color} onChange={(color) => setF({ ...f, color })} />
+        </div>
+      </div>
+      <FlagPicker value={f.flag} color={f.color} onChange={(flag) => setF({ ...f, flag })} />
+      <button type="submit" disabled={busy} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white">
+        Crear mesa del equipo 1110
+      </button>
+    </form>
   );
 }
 

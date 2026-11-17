@@ -41,6 +41,7 @@ interface TeamRow {
   captain_id: string;
   join_code: string;
   created_at: string;
+  staff?: boolean;
 }
 
 interface MemberRow {
@@ -80,7 +81,7 @@ export function isReservationOpen(ev: EventRow, now = serverNow()): boolean {
 export async function getPublicEvent(): Promise<PublicEvent> {
   const [ev, taken] = await Promise.all([
     getEventRow(),
-    db().from("teams").select("id", { count: "exact", head: true }),
+    db().from("teams").select("id", { count: "exact", head: true }).eq("staff", false),
   ]);
   const now = serverNow();
   return {
@@ -128,6 +129,7 @@ async function buildTeam(team: TeamRow, viewer: string | null, seatsTotal: numbe
   return {
     id: team.id,
     tableNumber: team.table_number,
+    staff: team.staff === true,
     name: team.name,
     flag: team.flag,
     color: team.color,

@@ -2,7 +2,9 @@ import { z } from "zod";
 import { handleError, jsonError, jsonOk, readJson } from "@/lib/http";
 import { isAdmin } from "@/lib/session";
 import {
+  adminAddMember,
   adminCancelInvite,
+  adminCreateStaffTeam,
   adminMakeCaptain,
   adminMergeTeams,
   adminMoveMember,
@@ -10,7 +12,8 @@ import {
   adminRemoveMember,
   adminUpdateEvent,
 } from "@/lib/teams-admin";
-import { firstIssue } from "@/lib/validation";
+import { emailSchema, firstIssue } from "@/lib/validation";
+import { COLOR_KEYS, FLAG_KEYS } from "@/lib/teams-catalog";
 
 const id = z.uuid({ message: "Dato no válido." });
 const iso = z.iso.datetime({ offset: true, message: "Fecha no válida." });
@@ -22,6 +25,14 @@ const schemas = {
   move: z.object({ participantId: id, targetTeamId: id }),
   merge: z.object({ sourceId: id, targetId: id }),
   "cancel-invite": z.object({ inviteId: id }),
+  "add-member": z.object({ teamId: id, email: emailSchema }),
+  "staff-create": z.object({
+    name: z.string().trim().min(2, { message: "El nombre debe tener entre 2 y 30 letras." }).max(30, { message: "El nombre debe tener entre 2 y 30 letras." }),
+    flag: z.enum(FLAG_KEYS),
+    color: z.enum(COLOR_KEYS),
+    motto: z.string().trim().max(60).default(""),
+    captainEmail: emailSchema,
+  }),
   event: z.object({
     title: z.string().trim().min(2).max(80),
     startsAt: iso,
@@ -65,6 +76,12 @@ export async function POST(request: Request, ctx: { params: Promise<{ action: st
         break;
       case "cancel-invite":
         await adminCancelInvite(d.inviteId);
+        break;
+      case "add-member":
+        await adminAddMember(d.teamId, d.email);
+        break;
+      case "staff-create":
+        await adminCreateStaffTeam(parsed.data as z.infer<(typeof schemas)["staff-create"]>);
         break;
       case "event":
         await adminUpdateEvent(parsed.data as z.infer<(typeof schemas)["event"]>);

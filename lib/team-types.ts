@@ -34,6 +34,8 @@ export interface PublicInvite {
 export interface PublicTeam {
   id: string;
   tableNumber: number;
+  /** Mesa del equipo 1110 (admins), fuera de las mesas públicas. */
+  staff: boolean;
   name: string;
   flag: string;
   color: string;
