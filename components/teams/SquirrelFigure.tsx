@@ -1,6 +1,6 @@
 /**
- * Ardilla 11Diez por capas (SVG plano). Combina cabeza + cara + barba + accesorio en la mano;
- * el chaleco toma el color del team. Solo elementos SVG intrínsecos y funciones (no
+ * Ardilla 11Diez por capas (SVG plano). Combina estilo (ardillo/ardilla) + ropa + cabeza +
+ * cara + barba/aretes + accesorio en la mano; la ropa toma el color del team. Solo elementos SVG intrínsecos y funciones (no
  * subcomponentes) para que también funcione dentro de las imágenes de next/og.
  */
 import { type Look, parseLook } from "@/lib/squirrel-look";
@@ -13,6 +13,51 @@ const CHEEK = "#F2A0A0";
 const WHITE = "#FFFFFF";
 const GOLD = "#E2B12F";
 const GOLD_DARK = "#B88A14";
+const HAIR = "#6B3A1E";
+const HAIR_LIGHT = "#8F5129";
+const PINK = "#E84A8A";
+const PINK_DARK = "#C2306B";
+const LEAF = "#5C9A3A";
+
+const r1 = (n: number) => Math.round(n * 10) / 10;
+
+/** Florecita de 5 pétalos. */
+function flower(cx: number, cy: number, petal: string, size = 1, key?: string | number) {
+  return (
+    <g key={key}>
+      {[0, 1, 2, 3, 4].map((i) => {
+        const a = (i * 72 - 90) * (Math.PI / 180);
+        return (
+          <circle
+            key={i}
+            cx={r1(cx + Math.cos(a) * 5 * size)}
+            cy={r1(cy + Math.sin(a) * 5 * size)}
+            r={r1(4.6 * size)}
+            fill={petal}
+          />
+        );
+      })}
+      <circle cx={cx} cy={cy} r={r1(3.4 * size)} fill="#F2C850" />
+    </g>
+  );
+}
+
+/** Corazón centrado en (cx, cy) de ancho ~2·w. */
+function heartPath(cx: number, cy: number, w: number) {
+  const h = w * 0.8;
+  return `M${cx} ${r1(cy + h)} C${r1(cx - w * 1.4)} ${r1(cy - h * 0.1)} ${r1(cx - w * 0.8)} ${r1(cy - h * 1.3)} ${cx} ${r1(cy - h * 0.45)} C${r1(cx + w * 0.8)} ${r1(cy - h * 1.3)} ${r1(cx + w * 1.4)} ${r1(cy - h * 0.1)} ${cx} ${r1(cy + h)} Z`;
+}
+
+/** Estrella de 5 puntas. */
+function starPath(cx: number, cy: number, R: number, r: number) {
+  const pts: string[] = [];
+  for (let i = 0; i < 10; i++) {
+    const a = (i * 36 - 90) * (Math.PI / 180);
+    const rad = i % 2 === 0 ? R : r;
+    pts.push(`${r1(cx + Math.cos(a) * rad)} ${r1(cy + Math.sin(a) * rad)}`);
+  }
+  return `M${pts.join(" L")} Z`;
+}
 
 /** viewBox completo (cuerpo) y recorte de la cabeza para miniaturas de cara/barba. */
 const VIEW_FULL = "0 -12 200 242";
@@ -30,6 +75,7 @@ export function SquirrelFigure({
   crop?: "full" | "head";
 }) {
   const l = typeof look === "string" ? parseLook(look) : look;
+  const fem = l.style === "ardilla";
   const head = crop === "head";
   return (
     <svg
@@ -38,12 +84,12 @@ export function SquirrelFigure({
       viewBox={head ? VIEW_HEAD : VIEW_FULL}
     >
       {tail()}
-      {body(color)}
-      {l.head === "colita" || l.head === "afro" ? hairBack(l.head) : null}
+      {body(color, l.outfit)}
+      {hairBack(l.head)}
       {ears()}
-      {faceBase()}
+      {faceBase(fem)}
       {beard(l.beard)}
-      {face(l.face)}
+      {face(l.face, fem)}
       {hat(l.head)}
       {hand(l.hand)}
     </svg>
@@ -69,17 +115,18 @@ function tail() {
   );
 }
 
-function body(color: string) {
+/** Silueta del torso (blusa, suéter). */
+const TORSO =
+  "M58 150 C58 134 74 128 100 128 C126 128 142 134 142 150 C146 172 142 196 132 210 L68 210 C58 196 54 172 58 150 Z";
+
+function shade(d: string, opacity = 0.22) {
+  return <path d={d} fill="#000000" fillOpacity={opacity} />;
+}
+
+function vest(color: string) {
   return (
     <g>
-      {/* pies */}
-      <ellipse cx="80" cy="219" rx="17" ry="8" fill={INK} />
-      <ellipse cx="120" cy="219" rx="17" ry="8" fill={INK} />
-      {/* cuerpo */}
-      <ellipse cx="100" cy="172" rx="46" ry="46" fill={FUR} />
-      {/* camisa */}
       <path d="M80 128 L120 128 L106 176 L94 176 Z" fill={WHITE} />
-      {/* chaleco (color del team) */}
       <path
         d="M58 150 C58 136 70 128 82 128 L100 176 L100 214 L68 210 C58 192 56 170 58 150 Z"
         fill={color}
@@ -91,8 +138,120 @@ function body(color: string) {
       <path d="M100 176 L100 214" stroke="#000000" strokeOpacity="0.18" strokeWidth="2" />
       <circle cx="107" cy="188" r="2.6" fill="#000000" fillOpacity="0.25" />
       <circle cx="107" cy="200" r="2.6" fill="#000000" fillOpacity="0.25" />
-      {/* corbata */}
-      <path d="M96 130 L104 130 L102 138 L106 162 L100 170 L94 162 L98 138 Z" fill={INK} />
+    </g>
+  );
+}
+
+function bowTie(fill: string, cy = 136) {
+  return (
+    <g>
+      <path d={`M100 ${cy} L86 ${cy - 8} L86 ${cy + 8} Z`} fill={fill} />
+      <path d={`M100 ${cy} L114 ${cy - 8} L114 ${cy + 8} Z`} fill={fill} />
+      <circle cx="100" cy={cy} r="4" fill={fill} />
+    </g>
+  );
+}
+
+function outfit(color: string, id: string) {
+  switch (id) {
+    case "corbatin":
+      return (
+        <g>
+          {vest(color)}
+          {bowTie(INK)}
+        </g>
+      );
+    case "sueter":
+      return (
+        <g>
+          <path d={TORSO} fill={color} />
+          <path d="M57 158 L143 158 L143.6 164 L56.6 164 Z M57 172 L143.6 172 L143.4 178 L57 178 Z" fill={WHITE} fillOpacity="0.85" />
+          <path d="M78 128 C84 142 116 142 122 128 L116 126 C110 134 90 134 84 126 Z" fill={color} />
+          {shade("M78 128 C84 142 116 142 122 128 L116 126 C110 134 90 134 84 126 Z", 0.28)}
+          {flower(100, 194, WHITE, 0.8)}
+        </g>
+      );
+    case "blusa": {
+      const loops = "M100 140 C90 128 74 128 76 141 C74 154 90 152 100 140 Z M100 140 C110 128 126 128 124 141 C126 154 110 152 100 140 Z";
+      const tails = "M97 143 L88 166 L95 162 L100 145 Z M103 143 L112 166 L105 162 L100 145 Z";
+      return (
+        <g>
+          <path d={TORSO} fill={color} />
+          <path d={`${loops} ${tails}`} fill={WHITE} />
+          <path d="M100 140 C94 134 84 133 82 139 M100 140 C106 134 116 133 118 139" fill="none" stroke="#D8D0C2" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="100" cy="140" r="5" fill="#EFEAE2" />
+          <circle cx="100" cy="178" r="2.4" fill={WHITE} />
+          <circle cx="100" cy="191" r="2.4" fill={WHITE} />
+          <circle cx="100" cy="204" r="2.4" fill={WHITE} />
+        </g>
+      );
+    }
+    case "vestido": {
+      const dress = "M64 146 C64 134 80 128 100 128 C120 128 136 134 136 146 L132 178 L158 214 L42 214 L68 178 Z";
+      return (
+        <g>
+          <path d={dress} fill={color} />
+          <path d="M86 128 C90 142 110 142 114 128 Z" fill={FUR_LIGHT} />
+          <path d="M67 176 L133 176 L132.4 184 L67.6 184 Z" fill={WHITE} />
+          {[
+            [86, 152], [112, 148], [98, 164], [120, 164], [78, 166],
+            [64, 204], [80, 196], [96, 206], [112, 196], [128, 206], [144, 204], [72, 190], [100, 192], [126, 190],
+          ].map(([x, y]) => (
+            <circle key={`${x}-${y}`} cx={x} cy={y} r="2.8" fill={WHITE} fillOpacity="0.9" />
+          ))}
+          {shade("M42 214 L158 214 L155 210 L45 210 Z", 0.2)}
+        </g>
+      );
+    }
+    case "blazer": {
+      const pearls = [
+        [86, 131], [90, 136], [95, 139.5], [100, 141], [105, 139.5], [110, 136], [114, 131],
+      ];
+      const lapels = "M82 128 L100 170 L88 152 L74 146 Z M118 128 L100 170 L112 152 L126 146 Z";
+      return (
+        <g>
+          <path d="M80 128 L120 128 L106 176 L94 176 Z" fill={WHITE} />
+          <path d="M54 150 C54 134 68 128 82 128 L100 170 L100 214 L66 212 C54 194 50 170 54 150 Z" fill={color} />
+          <path d="M146 150 C146 134 132 128 118 128 L100 170 L100 214 L134 212 C146 194 150 170 146 150 Z" fill={color} />
+          {shade(lapels, 0.25)}
+          <path d="M100 170 L100 214" stroke="#000000" strokeOpacity="0.18" strokeWidth="2" />
+          <circle cx="104" cy="186" r="3" fill={GOLD} />
+          <circle cx="104" cy="198" r="3" fill={GOLD} />
+          {pearls.map(([x, y]) => (
+            <circle key={x} cx={x} cy={y} r="3.2" fill={WHITE} stroke="#D8D0C2" strokeWidth="1" />
+          ))}
+        </g>
+      );
+    }
+    case "falda":
+      return (
+        <g>
+          {vest(color)}
+          <path d="M66 190 L134 190 L152 214 L48 214 Z" fill={color} />
+          {shade("M66 190 L134 190 L152 214 L48 214 Z", 0.28)}
+          <path d="M80 192 L74 213 M100 192 L100 213 M120 192 L126 213" stroke="#000000" strokeOpacity="0.2" strokeWidth="2" />
+          {bowTie(PINK, 134)}
+        </g>
+      );
+    default: // chaleco
+      return (
+        <g>
+          {vest(color)}
+          <path d="M96 130 L104 130 L102 138 L106 162 L100 170 L94 162 L98 138 Z" fill={INK} />
+        </g>
+      );
+  }
+}
+
+function body(color: string, outfitId: string) {
+  return (
+    <g>
+      {/* pies */}
+      <ellipse cx="80" cy="219" rx="17" ry="8" fill={INK} />
+      <ellipse cx="120" cy="219" rx="17" ry="8" fill={INK} />
+      {/* cuerpo */}
+      <ellipse cx="100" cy="172" rx="46" ry="46" fill={FUR} />
+      {outfit(color, outfitId)}
       {/* brazo izquierdo */}
       <ellipse cx="57" cy="172" rx="11" ry="19" fill={FUR} />
       <ellipse cx="56" cy="186" rx="9" ry="7" fill={FUR_DARK} />
@@ -111,7 +270,7 @@ function ears() {
   );
 }
 
-function eyes() {
+function eyes(fem = false) {
   return (
     <g>
       <ellipse cx="83" cy="80" rx="11" ry="12" fill={WHITE} />
@@ -120,32 +279,48 @@ function eyes() {
       <circle cx="116" cy="81" r="6.5" fill={INK} />
       <circle cx="86.5" cy="78" r="2.4" fill={WHITE} />
       <circle cx="118.5" cy="78" r="2.4" fill={WHITE} />
+      {fem ? (
+        <path
+          d="M72 77 C73 66 93 65 95 75 M74 71 L67 66 M77.5 68 L73 61.5 M82 67 L80.5 60 M128 77 C127 66 107 65 105 75 M126 71 L133 66 M122.5 68 L127 61.5 M118 67 L119.5 60"
+          fill="none"
+          stroke={INK}
+          strokeWidth="2.6"
+          strokeLinecap="round"
+        />
+      ) : null}
     </g>
   );
 }
 
-function mouth() {
+function mouth(fem = false) {
   return (
     <g>
-      <path d="M88 103 C94 112 106 112 112 103" fill="none" stroke={INK} strokeWidth="3" strokeLinecap="round" />
+      <path
+        d="M88 103 C94 112 106 112 112 103"
+        fill="none"
+        stroke={fem ? "#D63E6C" : INK}
+        strokeWidth={fem ? 4 : 3}
+        strokeLinecap="round"
+      />
       <path d="M96 107 L96 115 L104 115 L104 107 Z" fill={WHITE} />
       <path d="M100 107 L100 115" stroke="#E0D4C4" strokeWidth="1" />
     </g>
   );
 }
 
-function faceBase() {
+function faceBase(fem: boolean) {
+  const blush = fem ? "#F48CA6" : CHEEK;
   return (
     <g>
       <ellipse cx="100" cy="82" rx="52" ry="46" fill={FUR} />
       <ellipse cx="83" cy="80" rx="17" ry="17" fill={FUR_LIGHT} />
       <ellipse cx="117" cy="80" rx="17" ry="17" fill={FUR_LIGHT} />
       <ellipse cx="100" cy="102" rx="34" ry="24" fill={FUR_LIGHT} />
-      <ellipse cx="70" cy="102" rx="8" ry="5" fill={CHEEK} />
-      <ellipse cx="130" cy="102" rx="8" ry="5" fill={CHEEK} />
-      {eyes()}
+      <ellipse cx="70" cy="102" rx={fem ? 10 : 8} ry={fem ? 6 : 5} fill={blush} />
+      <ellipse cx="130" cy="102" rx={fem ? 10 : 8} ry={fem ? 6 : 5} fill={blush} />
+      {eyes(fem)}
       <ellipse cx="100" cy="95" rx="6" ry="4.2" fill="#C9656A" />
-      {mouth()}
+      {mouth(fem)}
     </g>
   );
 }
@@ -209,6 +384,53 @@ function beard(id: string) {
           <path d="M150 74 L140 74 L136 112 C142 110 147 104 149 96 Z" fill={BROWN} />
         </g>
       );
+    case "perlas":
+      return (
+        <g>
+          {[55, 145].map((x) => (
+            <g key={x}>
+              <circle cx={x} cy="108" r="5.5" fill={WHITE} stroke="#D8D0C2" strokeWidth="1.2" />
+              <circle cx={x - 1.8} cy="106" r="1.6" fill={WHITE} />
+            </g>
+          ))}
+        </g>
+      );
+    case "argollas":
+      return (
+        <g>
+          {[54, 146].map((x) => (
+            <g key={x}>
+              <circle cx={x} cy="104" r="2.6" fill={GOLD} />
+              <circle cx={x} cy="115" r="8.5" fill="none" stroke={GOLD} strokeWidth="3.2" />
+            </g>
+          ))}
+        </g>
+      );
+    case "aretesbellota":
+      return (
+        <g>
+          {[55, 145].map((x) => (
+            <g key={x}>
+              <path d={`M${x} 104 L${x} 111`} stroke={GOLD} strokeWidth="2" />
+              <path d={`M${x - 6} 115 C${x - 6} 128 ${x + 6} 128 ${x + 6} 115 Z`} fill="#C98A4B" />
+              <path d={`M${x - 7} 116 C${x - 7} 108 ${x + 7} 108 ${x + 7} 116 Z`} fill="#6B4A2E" />
+            </g>
+          ))}
+        </g>
+      );
+    case "aretescorazon":
+      return (
+        <g>
+          {[55, 145].map((x) => (
+            <g key={x}>
+              <path d={`M${x} 104 L${x} 110`} stroke={GOLD} strokeWidth="2" />
+              <path d={heartPath(x, 116, 6)} fill={PINK} stroke={PINK_DARK} strokeWidth="1.2" />
+            </g>
+          ))}
+        </g>
+      );
+    case "lunar":
+      return <circle cx="123" cy="97" r="2.8" fill={INK} />;
     default:
       return null;
   }
@@ -218,7 +440,7 @@ function beard(id: string) {
 // Cara
 // ---------------------------------------------------------------------------
 
-function face(id: string) {
+function face(id: string, fem = false) {
   switch (id) {
     case "lentes":
       return (
@@ -255,7 +477,7 @@ function face(id: string) {
           <path d="M100 36 L100 62 M66 52 L80 64 M134 52 L120 64" stroke="#F2C850" strokeWidth="4" strokeLinecap="round" />
           <ellipse cx="83" cy="80" rx="15" ry="15" fill="#FFFFFF" />
           <ellipse cx="117" cy="80" rx="15" ry="15" fill="#FFFFFF" />
-          {eyes()}
+          {eyes(fem)}
         </g>
       );
     case "antifaz":
@@ -268,7 +490,7 @@ function face(id: string) {
           <path d="M52 76 L36 70 L40 82 Z" fill="#1B1B3A" />
           <ellipse cx="83" cy="80" rx="12" ry="12" fill="#FFFFFF" />
           <ellipse cx="117" cy="80" rx="12" ry="12" fill="#FFFFFF" />
-          {eyes()}
+          {eyes(fem)}
         </g>
       );
     case "parche":
@@ -285,6 +507,47 @@ function face(id: string) {
           <circle cx="96" cy="91" r="3" fill="#FFFFFF" fillOpacity="0.7" />
         </g>
       );
+    case "ojogato": {
+      const FRAME = "#8E2C5A";
+      return (
+        <g>
+          <ellipse cx="83" cy="81" rx="15" ry="13" fill={WHITE} fillOpacity="0.15" stroke={FRAME} strokeWidth="4" />
+          <ellipse cx="117" cy="81" rx="15" ry="13" fill={WHITE} fillOpacity="0.15" stroke={FRAME} strokeWidth="4" />
+          <path d="M70 76 L56 62 L74 69 Z M130 76 L144 62 L126 69 Z" fill={FRAME} />
+          <path d="M98 79 L102 79" stroke={FRAME} strokeWidth="4" />
+          <circle cx="62" cy="66" r="1.8" fill={WHITE} />
+          <circle cx="138" cy="66" r="1.8" fill={WHITE} />
+        </g>
+      );
+    }
+    case "corazon":
+      return (
+        <g>
+          <path d={`${heartPath(83, 82, 13)} ${heartPath(117, 82, 13)}`} fill={PINK} fillOpacity="0.88" stroke={PINK_DARK} strokeWidth="3" />
+          <path d="M98 78 L102 78 M66 76 L54 72 M134 76 L146 72" stroke={PINK_DARK} strokeWidth="3.5" strokeLinecap="round" />
+          <path d="M74 76 C76 73 79 72 82 73 M108 76 C110 73 113 72 116 73" fill="none" stroke={WHITE} strokeOpacity="0.7" strokeWidth="2.5" strokeLinecap="round" />
+        </g>
+      );
+    case "estrella":
+      return (
+        <g>
+          <path d={`${starPath(83, 81, 19, 9)} ${starPath(117, 81, 19, 9)}`} fill="#F2C850" fillOpacity="0.9" stroke={GOLD_DARK} strokeWidth="2.5" strokeLinejoin="round" />
+          <path d="M98 79 L102 79" stroke={GOLD_DARK} strokeWidth="3.5" />
+          <circle cx="83" cy="81" r="5" fill={INK} />
+          <circle cx="117" cy="81" r="5" fill={INK} />
+        </g>
+      );
+    case "pecas":
+      return (
+        <g>
+          {[
+            [66, 94], [72, 98], [64, 101], [76, 92],
+            [134, 94], [128, 98], [136, 101], [124, 92],
+          ].map(([x, y]) => (
+            <circle key={`${x}-${y}`} cx={x} cy={y} r="1.7" fill={FUR_DARK} />
+          ))}
+        </g>
+      );
     default:
       return null;
   }
@@ -295,24 +558,85 @@ function face(id: string) {
 // ---------------------------------------------------------------------------
 
 function hairBack(id: string) {
-  if (id === "afro") {
-    return (
-      <g>
-        {[
-          [100, 30, 40],
-          [62, 44, 26],
-          [138, 44, 26],
-          [52, 72, 20],
-          [148, 72, 20],
-          [80, 22, 24],
-          [120, 22, 24],
-        ].map(([cx, cy, r], i) => (
-          <circle key={i} cx={cx} cy={cy} r={r} fill="#2B1D14" />
-        ))}
-      </g>
-    );
+  switch (id) {
+    case "afro":
+      return (
+        <g>
+          {[
+            [100, 30, 40],
+            [62, 44, 26],
+            [138, 44, 26],
+            [52, 72, 20],
+            [148, 72, 20],
+            [80, 22, 24],
+            [120, 22, 24],
+          ].map(([cx, cy, r], i) => (
+            <circle key={i} cx={cx} cy={cy} r={r} fill="#2B1D14" />
+          ))}
+        </g>
+      );
+    case "pelolargo":
+      return (
+        <g>
+          <path
+            d="M54 60 C40 30 160 30 146 60 C156 90 162 122 158 148 C146 156 132 152 126 140 L74 140 C68 152 54 156 42 148 C38 122 44 90 54 60 Z"
+            fill={HAIR}
+          />
+          <path d="M48 96 C46 116 48 132 52 144 M152 96 C154 116 152 132 148 144" fill="none" stroke={HAIR_LIGHT} strokeWidth="3" strokeLinecap="round" />
+        </g>
+      );
+    case "coleta":
+      return (
+        <path
+          d="M66 46 C40 38 22 62 26 92 C28 112 22 130 12 140 C38 140 52 120 52 98 C52 78 58 64 72 56 Z"
+          fill={HAIR}
+        />
+      );
+    case "coletas":
+      return (
+        <path
+          d="M54 62 C30 52 12 70 16 94 C20 110 34 114 40 104 C36 92 40 80 54 76 Z M146 62 C170 52 188 70 184 94 C180 110 166 114 160 104 C164 92 160 80 146 76 Z"
+          fill={HAIR}
+        />
+      );
+    case "trenzas":
+      return (
+        <g>
+          {[50, 150].map((x) => (
+            <g key={x}>
+              {[96, 108, 120, 132, 144].map((y, i) => (
+                <ellipse key={y} cx={x + (i % 2 === 0 ? -1.5 : 1.5)} cy={y} rx="8" ry="7.5" fill={i % 2 === 0 ? HAIR : HAIR_LIGHT} />
+              ))}
+              <path d={`M${x} 156 L${x - 9} 150 L${x - 9} 162 Z M${x} 156 L${x + 9} 150 L${x + 9} 162 Z`} fill={PINK} />
+              <circle cx={x} cy="156" r="3" fill={PINK_DARK} />
+            </g>
+          ))}
+        </g>
+      );
+    case "rizos":
+      return (
+        <g>
+          {[
+            [58, 50], [74, 36], [92, 30], [108, 30], [126, 36], [142, 50],
+            [50, 70], [150, 70], [46, 92], [154, 92], [48, 114], [152, 114],
+          ].map(([cx, cy]) => (
+            <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="13" fill={HAIR} />
+          ))}
+        </g>
+      );
+    default:
+      return null;
   }
-  return null;
+}
+
+/** Flequillo de pelo encima de la frente (para peinados). */
+function fringe() {
+  return (
+    <path
+      d="M54 66 C52 40 74 32 100 32 C126 32 148 40 146 66 C138 56 128 52 118 56 C114 46 104 44 98 50 C90 44 80 46 76 54 C68 50 60 54 54 66 Z"
+      fill={HAIR}
+    />
+  );
 }
 
 function hat(id: string) {
@@ -480,6 +804,99 @@ function hat(id: string) {
           <path d="M94 36 L110 36 L110 42 L94 42 Z" fill="#E84A8A" />
         </g>
       );
+    case "lazo":
+      return (
+        <g>
+          <path d="M100 40 C88 20 64 22 66 40 C68 56 88 52 100 40 Z M100 40 C112 20 136 22 134 40 C132 56 112 52 100 40 Z" fill={PINK} />
+          <path d="M100 40 C92 32 78 30 76 38 M100 40 C108 32 122 30 124 38" fill="none" stroke={PINK_DARK} strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M96 44 L88 60 L96 56 Z M104 44 L112 60 L104 56 Z" fill={PINK_DARK} />
+          <circle cx="100" cy="40" r="6.5" fill={PINK_DARK} />
+        </g>
+      );
+    case "flores":
+      return (
+        <g>
+          <path d="M52 66 C58 32 142 32 148 66" fill="none" stroke={LEAF} strokeWidth="4" strokeLinecap="round" />
+          {[
+            [55, 60, "#F48FB1"], [66, 46, WHITE], [82, 37, "#B39DDB"], [100, 34, "#F48FB1"],
+            [118, 37, WHITE], [134, 46, "#B39DDB"], [145, 60, "#F48FB1"],
+          ].map(([x, y, c], i) => flower(x as number, y as number, c as string, 1, i))}
+        </g>
+      );
+    case "pelolargo":
+    case "trenzas":
+      return fringe();
+    case "coleta":
+      return (
+        <g>
+          {fringe()}
+          <circle cx="62" cy="53" r="7" fill={PINK} />
+        </g>
+      );
+    case "coletas":
+      return (
+        <g>
+          {fringe()}
+          <circle cx="52" cy="68" r="6.5" fill={PINK} />
+          <circle cx="148" cy="68" r="6.5" fill={PINK} />
+        </g>
+      );
+    case "mono":
+      return (
+        <g>
+          <circle cx="100" cy="22" r="17" fill={HAIR} />
+          <path d="M90 16 C94 10 104 9 110 14" fill="none" stroke={HAIR_LIGHT} strokeWidth="2.5" strokeLinecap="round" />
+          {fringe()}
+          <ellipse cx="100" cy="36" rx="13" ry="4.5" fill={PINK} />
+        </g>
+      );
+    case "rizos":
+      return (
+        <g>
+          {[[68, 50], [82, 42], [100, 39], [118, 42], [132, 50]].map(([cx, cy]) => (
+            <circle key={cx} cx={cx} cy={cy} r="10" fill={HAIR} />
+          ))}
+          {[[80, 40], [98, 37], [116, 40]].map(([cx, cy]) => (
+            <path key={cx} d={`M${cx - 3} ${cy} C${cx} ${cy - 3} ${cx + 4} ${cy - 2} ${cx + 5} ${cy + 1}`} fill="none" stroke={HAIR_LIGHT} strokeWidth="2" strokeLinecap="round" />
+          ))}
+        </g>
+      );
+    case "tiara":
+      return (
+        <g>
+          <path d="M68 48 L74 30 L86 40 L100 18 L114 40 L126 30 L132 48 C112 43 88 43 68 48 Z" fill="#E4E7EC" stroke="#A9B0BA" strokeWidth="1.5" strokeLinejoin="round" />
+          <circle cx="100" cy="32" r="4.5" fill={PINK} />
+          <circle cx="78" cy="40" r="2.6" fill="#6EC6E8" />
+          <circle cx="122" cy="40" r="2.6" fill="#6EC6E8" />
+          <circle cx="98.5" cy="30.5" r="1.4" fill={WHITE} />
+        </g>
+      );
+    case "pava":
+      return (
+        <g>
+          <path d="M20 58 C50 40 150 40 180 58 C160 72 40 72 20 58 Z" fill="#F0DDA8" />
+          <path d="M34 58 C60 48 140 48 166 58" fill="none" stroke="#D9BC7A" strokeWidth="2" />
+          <path d="M66 54 C64 22 136 22 134 54 Z" fill="#E9CF94" />
+          <path d="M72 36 C88 30 112 30 128 36" fill="none" stroke="#D9BC7A" strokeWidth="2" />
+          <path d="M66 44 L134 44 L134 53 L66 53 Z" fill={PINK} />
+          {flower(124, 46, WHITE, 1.2)}
+        </g>
+      );
+    case "cintillo":
+      return (
+        <g>
+          <path d="M52 70 C54 30 146 30 148 70" fill="none" stroke={PINK} strokeWidth="8" strokeLinecap="round" />
+          <path d="M126 42 L114 34 L116 48 Z M126 42 L138 34 L136 48 Z" fill={PINK_DARK} />
+          <circle cx="126" cy="42" r="3.5" fill={PINK_DARK} />
+        </g>
+      );
+    case "flor":
+      return (
+        <g>
+          <path d="M120 50 C116 40 122 32 132 34 C130 42 126 48 120 50 Z" fill={LEAF} />
+          {flower(136, 46, "#E84A4A", 1.7)}
+        </g>
+      );
     default:
       return null;
   }
@@ -593,6 +1010,71 @@ function hand(id: string) {
           <path d="M146 168 C146 200 174 200 174 168 Z" fill="#C98A4B" />
           <path d="M142 168 C142 154 178 154 178 168 Z" fill="#6B4A2E" />
           <path d="M160 154 L162 146" stroke="#6B4A2E" strokeWidth="3" strokeLinecap="round" />
+        </g>
+      );
+      break;
+    case "bolso":
+      item = (
+        <g>
+          <path d="M146 186 C146 164 174 164 174 186" fill="none" stroke={PINK_DARK} strokeWidth="4" />
+          <path d="M136 184 L184 184 L180 216 L140 216 Z" fill={PINK} />
+          <path d="M136 184 L184 184 L174 200 L146 200 Z" fill={PINK_DARK} />
+          <circle cx="160" cy="199" r="3.5" fill={GOLD} />
+        </g>
+      );
+      break;
+    case "agenda":
+      item = (
+        <g>
+          <path d="M140 150 L176 150 L176 198 L140 198 Z" fill="#6B3FA0" />
+          <path d="M176 152 L180 154 L180 200 L176 198 Z" fill={WHITE} />
+          <path d="M146 160 L166 160 L166 172 L146 172 Z" fill={WHITE} fillOpacity="0.9" />
+          <path d="M170 150 L170 198" stroke="#F2C850" strokeWidth="3" />
+          <path d="M150 198 L150 210 L154 206 L158 210 L158 198 Z" fill={PINK} />
+        </g>
+      );
+      break;
+    case "ramo":
+      item = (
+        <g>
+          <path d="M152 186 L156 154 M160 186 L168 148 M166 186 L180 158" stroke={LEAF} strokeWidth="3" strokeLinecap="round" />
+          {flower(154, 152, "#F48FB1", 1.3)}
+          {flower(170, 144, WHITE, 1.3)}
+          {flower(182, 158, "#B39DDB", 1.3)}
+          {flower(166, 162, "#E84A4A", 1.1)}
+          <path d="M140 172 L186 166 L166 216 Z" fill="#F7E6EE" stroke={PINK} strokeWidth="2" strokeLinejoin="round" />
+          <path d="M164 192 L154 186 L156 198 Z M164 192 L174 186 L172 198 Z" fill={PINK} />
+        </g>
+      );
+      break;
+    case "abanico": {
+      const cx = 152;
+      const cy = 184;
+      const R = 38;
+      const pt = (deg: number, rad: number) => {
+        const a = (deg * Math.PI) / 180;
+        return `${r1(cx + Math.cos(a) * rad)} ${r1(cy + Math.sin(a) * rad)}`;
+      };
+      const ribs = [-130, -106, -82, -58, -34, -10];
+      item = (
+        <g>
+          <path d={`M${cx} ${cy} L${pt(-130, R)} A${R} ${R} 0 0 1 ${pt(-10, R)} Z`} fill={PINK} />
+          <path d={`M${pt(-130, R - 6)} A${R - 6} ${R - 6} 0 0 1 ${pt(-10, R - 6)}`} fill="none" stroke={WHITE} strokeWidth="2" strokeDasharray="3 3" />
+          {ribs.map((d) => (
+            <path key={d} d={`M${cx} ${cy} L${pt(d, R)}`} stroke={PINK_DARK} strokeWidth="1.8" />
+          ))}
+          <circle cx={cx} cy={cy} r="3.5" fill={GOLD} />
+        </g>
+      );
+      break;
+    }
+    case "espejo":
+      item = (
+        <g>
+          <path d="M150 192 L160 166" stroke={PINK_DARK} strokeWidth="7" strokeLinecap="round" />
+          <circle cx="166" cy="150" r="17" fill={PINK} />
+          <circle cx="166" cy="150" r="12" fill="#DDF0F5" />
+          <path d="M159 146 C160 142 163 140 167 140" fill="none" stroke={WHITE} strokeWidth="3" strokeLinecap="round" />
         </g>
       );
       break;
