@@ -127,7 +127,26 @@ const teamFields = {
     .default(""),
 };
 
-export const teamCreateSchema = z.object({ ...teamFields, squirrel: squirrelSchema });
+export const professionSchema = z
+  .string({ message: "Escribe tu profesión." })
+  .trim()
+  .transform((v) => v.replace(/\s+/g, " "))
+  .pipe(
+    z
+      .string()
+      .min(2, { message: "Escribe tu profesión." })
+      .max(80, { message: "La profesión es muy larga (máximo 80 caracteres)." }),
+  );
+
+/** Datos que deja todo el que reserva o se une a una mesa (el correo es el de su sesión). */
+const contactFields = {
+  fullName: fullNameSchema,
+  phone: phoneSchema,
+  profession: professionSchema,
+};
+export const contactSchema = z.object(contactFields);
+
+export const teamCreateSchema = z.object({ ...teamFields, ...contactFields, squirrel: squirrelSchema });
 export const teamUpdateSchema = z.object(teamFields);
 export const teamJoinSchema = z.object({
   code: z
@@ -135,8 +154,10 @@ export const teamJoinSchema = z.object({
     .trim()
     .toUpperCase()
     .regex(/^[A-Z0-9]{4,10}$/, { message: "Escribe el código que te pasó el capitán." }),
+  ...contactFields,
   squirrel: squirrelSchema,
 });
 export const teamSquirrelSchema = z.object({ squirrel: squirrelSchema });
+export const teamAcceptSchema = z.object({ ...contactFields, squirrel: squirrelSchema });
 export const teamInviteSchema = z.object({ email: emailSchema, fullName: fullNameSchema });
 export const teamIdSchema = z.object({ id: z.uuid({ message: "Dato no válido." }) });

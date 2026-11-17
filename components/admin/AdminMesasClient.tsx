@@ -173,7 +173,7 @@ function TeamCard({
               <span className="font-semibold text-ink">
                 {m.name} {m.isCaptain && <span className="text-[10px] font-extrabold text-cta">CAPITÁN</span>}
               </span>
-              <span className="block text-xs text-muted">{m.email} · {m.phone}</span>
+              <span className="block text-xs text-muted">{m.email} · {m.phone}{m.profession ? ` · ${m.profession}` : " · ⚠️ sin profesión"}</span>
             </span>
             {!m.isCaptain && (
               <button className={btn} disabled={busy} onClick={() => act("captain", { participantId: m.participantId }, `${m.name} ahora es capitán.`)}>

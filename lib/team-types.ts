@@ -60,9 +60,18 @@ export interface PendingInvite {
   invitedName: string;
 }
 
+/** Datos de contacto del jugador (el correo es el de su sesión y no se edita). */
+export interface MyContact {
+  fullName: string;
+  email: string;
+  phone: string;
+  /** null hasta que la deje al reservar o unirse a una mesa. */
+  profession: string | null;
+}
+
 export interface MesaState {
   event: PublicEvent;
-  me: { fullName: string };
+  me: MyContact;
   team: PublicTeam | null;
   invite: PendingInvite | null;
 }

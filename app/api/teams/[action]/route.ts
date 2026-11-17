@@ -10,11 +10,14 @@ import {
   joinTeam,
   leaveTeam,
   removeMember,
+  saveContact,
   setSquirrel,
   updateTeam,
 } from "@/lib/teams";
 import {
+  contactSchema,
   firstIssue,
+  teamAcceptSchema,
   teamCreateSchema,
   teamIdSchema,
   teamInviteSchema,
@@ -35,17 +38,25 @@ const ACTIONS: Record<string, Handler> = {
   async create(pid, body) {
     const d = parse(teamCreateSchema, body);
     if (d instanceof Response) return d;
+    await saveContact(pid, d);
     await createTeam(pid, d);
   },
   async join(pid, body) {
     const d = parse(teamJoinSchema, body);
     if (d instanceof Response) return d;
+    await saveContact(pid, d);
     await joinTeam(pid, d.code, d.squirrel);
   },
   async accept(pid, body) {
-    const d = parse(teamSquirrelSchema, body);
+    const d = parse(teamAcceptSchema, body);
     if (d instanceof Response) return d;
+    await saveContact(pid, d);
     await acceptInvite(pid, d.squirrel);
+  },
+  async profile(pid, body) {
+    const d = parse(contactSchema, body);
+    if (d instanceof Response) return d;
+    await saveContact(pid, d);
   },
   async decline(pid) {
     await declineInvite(pid);

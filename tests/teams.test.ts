@@ -6,7 +6,7 @@ import {
   composeLook, isValidLook, lookName, optionsFor, parseLook, randomLook, switchStyle,
 } from "@/lib/squirrel-look";
 import { FLAGS, TEAM_COLORS, colorHex } from "@/lib/teams-catalog";
-import { teamCreateSchema, teamInviteSchema, teamJoinSchema } from "@/lib/validation";
+import { contactSchema, teamAcceptSchema, teamCreateSchema, teamInviteSchema, teamJoinSchema } from "@/lib/validation";
 
 describe("ranking utils", () => {
   it("longest streak of won days", () => {
@@ -31,15 +31,35 @@ describe("teams catalog", () => {
   });
 });
 
+const CONTACT = { fullName: "  Ana   Ríos ", phone: "300 123-4567", profession: "  Contadora   pública " };
+
+describe("contact data", () => {
+  it("is required to reserve, join or accept", () => {
+    const sq = "ardilla|blusa|lazo|lentes|perlas|cafe";
+    const team = { name: "Team", flag: "niif", color: "verde", squirrel: sq };
+    expect(teamCreateSchema.safeParse(team).success).toBe(false);
+    expect(teamCreateSchema.safeParse({ ...team, ...CONTACT, profession: " " }).success).toBe(false);
+    expect(teamCreateSchema.safeParse({ ...team, ...CONTACT, phone: "12" }).success).toBe(false);
+    expect(teamJoinSchema.safeParse({ code: "K7Q2XM", squirrel: sq }).success).toBe(false);
+    expect(teamAcceptSchema.safeParse({ squirrel: sq }).success).toBe(false);
+    expect(teamAcceptSchema.parse({ ...CONTACT, squirrel: sq }).profession).toBe("Contadora pública");
+    expect(contactSchema.safeParse({ ...CONTACT, profession: "x".repeat(81) }).success).toBe(false);
+  });
+});
+
 describe("team validation", () => {
   it("creates a team with normalized fields", () => {
     const r = teamCreateSchema.parse({
+      ...CONTACT,
       name: "  Los   Debe ",
       flag: "niif",
       color: "verde",
       squirrel: "ardillo|chaleco|vaquero|lentes|bigote|calculadora",
     });
     expect(r).toEqual({
+      fullName: "Ana Ríos",
+      phone: "3001234567",
+      profession: "Contadora pública",
       name: "Los Debe",
       flag: "niif",
       color: "verde",
@@ -48,15 +68,15 @@ describe("team validation", () => {
     });
   });
   it("rejects unknown options and long names", () => {
-    const base = { name: "Team", flag: "niif", color: "verde", squirrel: "ardilla|vestido|ninguno|ninguna|ninguna|ninguno" };
+    const base = { ...CONTACT, name: "Team", flag: "niif", color: "verde", squirrel: "ardilla|vestido|ninguno|ninguna|ninguna|ninguno" };
     expect(teamCreateSchema.safeParse({ ...base, flag: "pirata" }).success).toBe(false);
     expect(teamCreateSchema.safeParse({ ...base, squirrel: "zorro" }).success).toBe(false);
     expect(teamCreateSchema.safeParse({ ...base, squirrel: "vaquero|lentes|bigote" }).success).toBe(false);
     expect(teamCreateSchema.safeParse({ ...base, name: "x".repeat(31) }).success).toBe(false);
   });
   it("normalizes join codes and invite emails", () => {
-    expect(teamJoinSchema.parse({ code: " k7q2xm ", squirrel: "ardilla|blusa|lazo|lentes|perlas|cafe" }).code).toBe("K7Q2XM");
-    expect(teamJoinSchema.safeParse({ code: "K7-Q2", squirrel: "ardilla|blusa|lazo|lentes|perlas|cafe" }).success).toBe(false);
+    expect(teamJoinSchema.parse({ ...CONTACT, code: " k7q2xm ", squirrel: "ardilla|blusa|lazo|lentes|perlas|cafe" }).code).toBe("K7Q2XM");
+    expect(teamJoinSchema.safeParse({ ...CONTACT, code: "K7-Q2", squirrel: "ardilla|blusa|lazo|lentes|perlas|cafe" }).success).toBe(false);
     expect(teamInviteSchema.parse({ email: " Ana@Correo.COM ", fullName: "Ana Ríos" }).email).toBe(
       "ana@correo.com",
     );
