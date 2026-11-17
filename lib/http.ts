@@ -1,6 +1,7 @@
 import "server-only";
 import { GameError } from "@/lib/game";
 import type { ApiError } from "@/lib/game-types";
+import { TeamError } from "@/lib/team-error";
 
 export function jsonError(error: string, message: string, status: number) {
   return Response.json({ error, message } satisfies ApiError, {
@@ -23,6 +24,7 @@ export async function readJson(request: Request): Promise<unknown> {
 
 export function handleError(err: unknown) {
   if (err instanceof GameError) return jsonError(err.code, err.message, err.status);
+  if (err instanceof TeamError) return jsonError(err.code, err.message, err.status);
   console.error(err);
   return jsonError("internal", "Ocurrió un error inesperado. Intenta de nuevo.", 500);
 }

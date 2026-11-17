@@ -8,6 +8,7 @@ import {
   toXlsx,
 } from "@/lib/export";
 import { jsonError } from "@/lib/http";
+import { mesasSheet, rankingSheet } from "@/lib/teams-admin";
 import { isAdmin } from "@/lib/session";
 import { allGameDates, getDayNumber, isGameDate } from "@/lib/time";
 import { describeTitle, titleStatus } from "@/lib/winner-rules";
@@ -25,7 +26,7 @@ async function winnerLabeler() {
 }
 
 /**
- * GET /api/admin/export?type=participants|results|all-results&format=xlsx|csv&date=YYYY-MM-DD
+ * GET /api/admin/export?type=participants|results|all-results|mesas|ranking&format=xlsx|csv&date=YYYY-MM-DD
  */
 export async function GET(request: Request) {
   if (!(await isAdmin())) return jsonError("unauthorized", "No autorizado.", 401);
@@ -69,6 +70,12 @@ export async function GET(request: Request) {
         sheets = [resultsSheet(all, "Todos", label)];
       }
       filename = "resultados-todos";
+    } else if (type === "mesas") {
+      sheets = [await mesasSheet()];
+      filename = "mesas-teams";
+    } else if (type === "ranking") {
+      sheets = [await rankingSheet()];
+      filename = "ranking";
     } else {
       return jsonError("invalid", "Tipo de exportación no válido.", 400);
     }

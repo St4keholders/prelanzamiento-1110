@@ -47,7 +47,7 @@ let assetsPromise: Promise<{
   sad: string;
 }> | null = null;
 
-function loadAssets() {
+export function loadAssets() {
   assetsPromise ??= (async () => {
     const [semibold, bold, extrabold, happy, sad] = await Promise.all([
       readFile(join(ASSET_DIR, "Manrope_600SemiBold.ttf")),
