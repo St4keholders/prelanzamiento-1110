@@ -5,7 +5,8 @@ import { formatMs } from "@/lib/event-format";
 import { getRanking } from "@/lib/ranking";
 import { supabaseAdmin } from "@/lib/supabase";
 import { TeamError } from "@/lib/team-error";
-import { colorHex, flagName, squirrelName } from "@/lib/teams-catalog";
+import { lookName } from "@/lib/squirrel-look";
+import { colorHex, flagName } from "@/lib/teams-catalog";
 import { getEventRow } from "@/lib/teams";
 
 function db(): SupabaseClient {
@@ -252,7 +253,7 @@ export async function mesasSheet(): Promise<Sheet> {
     for (const m of t.members) {
       rows.push([
         t.tableNumber, t.name, status, flagName(t.flag), t.motto,
-        m.isCaptain ? "Capitán" : "Integrante", m.name, m.email, m.phone, squirrelName(m.squirrel), "Dentro",
+        m.isCaptain ? "Capitán" : "Integrante", m.name, m.email, m.phone, lookName(m.squirrel), "Dentro",
       ]);
     }
     for (const i of t.invites) {

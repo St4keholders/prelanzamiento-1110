@@ -1,6 +1,7 @@
 import "server-only";
 import { ImageResponse } from "next/og";
-import { Flag, Squirrel } from "@/components/teams/Art";
+import { Flag } from "@/components/teams/Art";
+import { SquirrelFigure } from "@/components/teams/SquirrelFigure";
 import { formatMs } from "@/lib/event-format";
 import { SHARE_HEIGHT, SHARE_WIDTH, loadAssets } from "@/lib/share-image";
 import type { MyRanking, PublicTeam } from "@/lib/team-types";
@@ -219,14 +220,14 @@ export async function renderTeamCard(team: PublicTeam, eventLine: string): Promi
               style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 270 }}
             >
               {m ? (
-                <Squirrel kind={m.squirrel} size={190} />
+                <SquirrelFigure look={m.squirrel} color={color} size={180} />
               ) : (
                 <div
                   style={{
                     display: "flex",
                     width: 170,
                     height: 170,
-                    margin: 10,
+                    margin: "22px 5px 26px",
                     borderRadius: 999,
                     border: `6px dashed ${color}`,
                     alignItems: "center",

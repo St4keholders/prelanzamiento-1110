@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
-import { ColorPicker, FlagPicker, SquirrelPicker } from "@/components/mesa/Pickers";
+import { LookEditor } from "@/components/mesa/LookEditor";
+import { ColorPicker, FlagPicker } from "@/components/mesa/Pickers";
 import { TeamPreview } from "@/components/mesa/TeamPreview";
 import { ShareButton } from "@/components/ranking/ShareButton";
 import { Flag } from "@/components/teams/Art";
 import { formatEventDate, formatShortDateTime } from "@/lib/event-format";
+import { DEFAULT_LOOK } from "@/lib/squirrel-look";
 import type { MesaState, PublicTeam } from "@/lib/team-types";
 import { colorHex } from "@/lib/teams-catalog";
 
@@ -133,7 +135,7 @@ function CreateTeam({ free, total, busy, act }: { free: number; total: number; b
   const [flag, setFlag] = useState("partida-doble");
   const [color, setColor] = useState("verde");
   const [motto, setMotto] = useState("");
-  const [squirrel, setSquirrel] = useState("clasica");
+  const [squirrel, setSquirrel] = useState(DEFAULT_LOOK);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -181,8 +183,8 @@ function CreateTeam({ free, total, busy, act }: { free: number; total: number; b
         <FlagPicker value={flag} color={color} onChange={setFlag} />
       </Box>
       <Box>
-        <p className={label}>Tu ardilla</p>
-        <SquirrelPicker value={squirrel} onChange={setSquirrel} />
+        <p className={label}>Arma tu ardilla</p>
+        <LookEditor value={squirrel} color={colorHex(color)} onChange={setSquirrel} />
       </Box>
       <button type="submit" disabled={busy} className={primaryBtn}>
         {busy ? "Reservando…" : "Reservar mesa"}
@@ -193,7 +195,7 @@ function CreateTeam({ free, total, busy, act }: { free: number; total: number; b
 
 function InviteView({ state, busy, act }: { state: MesaState; busy: boolean; act: Act }) {
   const inv = state.invite!;
-  const [squirrel, setSquirrel] = useState("clasica");
+  const [squirrel, setSquirrel] = useState(DEFAULT_LOOK);
   return (
     <Box>
       <div className="flex items-center gap-3">
@@ -208,8 +210,8 @@ function InviteView({ state, busy, act }: { state: MesaState; busy: boolean; act
       </div>
       {state.event.reservationsOpen ? (
         <>
-          <p className={label}>Escoge tu ardilla para aceptar</p>
-          <SquirrelPicker value={squirrel} onChange={setSquirrel} />
+          <p className={label}>Arma tu ardilla para aceptar</p>
+          <LookEditor value={squirrel} color={colorHex(inv.color)} onChange={setSquirrel} />
           <button
             type="button"
             disabled={busy}
@@ -292,7 +294,9 @@ function MyTeam({ team, open, busy, act }: { team: PublicTeam; open: boolean; bu
         <CaptainTools team={team} seatsLeft={seatsLeft} busy={busy} act={act} />
       )}
 
-      {me && open && <MySquirrel current={me.squirrel} busy={busy} act={act} />}
+      {me && open && (
+        <MySquirrel current={me.squirrel} color={colorHex(team.color)} busy={busy} act={act} />
+      )}
 
       {open && (
         <Box>
@@ -451,7 +455,17 @@ function CaptainTools({
   );
 }
 
-function MySquirrel({ current, busy, act }: { current: string; busy: boolean; act: Act }) {
+function MySquirrel({
+  current,
+  color,
+  busy,
+  act,
+}: {
+  current: string;
+  color: string;
+  busy: boolean;
+  act: Act;
+}) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(current);
   if (!open) {
@@ -463,7 +477,7 @@ function MySquirrel({ current, busy, act }: { current: string; busy: boolean; ac
   }
   return (
     <Box>
-      <SquirrelPicker value={value} onChange={setValue} />
+      <LookEditor value={value} color={color} onChange={setValue} />
       <button
         type="button"
         disabled={busy}

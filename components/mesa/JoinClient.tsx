@@ -2,11 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { SquirrelPicker } from "@/components/mesa/Pickers";
+import { LookEditor } from "@/components/mesa/LookEditor";
+import { DEFAULT_LOOK } from "@/lib/squirrel-look";
 
-export function JoinClient({ code }: { code: string }) {
+export function JoinClient({ code, color }: { code: string; color: string }) {
   const router = useRouter();
-  const [squirrel, setSquirrel] = useState("clasica");
+  const [squirrel, setSquirrel] = useState(DEFAULT_LOOK);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,8 +36,8 @@ export function JoinClient({ code }: { code: string }) {
 
   return (
     <section className="space-y-3 rounded-3xl border border-line bg-white p-4 shadow-soft">
-      <p className="text-xs font-bold text-ink">Escoge tu ardilla</p>
-      <SquirrelPicker value={squirrel} onChange={setSquirrel} />
+      <p className="text-xs font-bold text-ink">Arma tu ardilla</p>
+      <LookEditor value={squirrel} color={color} onChange={setSquirrel} />
       {error && <p role="alert" className="text-sm font-bold text-danger">{error}</p>}
       <button
         type="button"

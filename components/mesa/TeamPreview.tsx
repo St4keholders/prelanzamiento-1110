@@ -1,4 +1,5 @@
-import { Flag, Squirrel } from "@/components/teams/Art";
+import { Flag } from "@/components/teams/Art";
+import { SquirrelFigure } from "@/components/teams/SquirrelFigure";
 import type { PublicTeam } from "@/lib/team-types";
 import { colorHex } from "@/lib/teams-catalog";
 
@@ -24,7 +25,7 @@ export function TeamPreview({ team }: { team: PublicTeam }) {
       <ul className="grid grid-cols-3 gap-2 p-3">
         {team.members.map((m) => (
           <li key={m.participantId} className="flex flex-col items-center text-center">
-            <Squirrel kind={m.squirrel} size={64} />
+            <SquirrelFigure look={m.squirrel} color={color} size={74} />
             <span className="w-full truncate text-xs font-bold text-ink">
               {m.name.split(" ")[0]}
               {m.isMe ? " (tú)" : ""}
@@ -34,7 +35,7 @@ export function TeamPreview({ team }: { team: PublicTeam }) {
         ))}
         {team.invites.map((i) => (
           <li key={i.id} className="flex flex-col items-center text-center opacity-60">
-            <span className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-line text-xl">
+            <span className="flex h-20 w-16 items-center justify-center rounded-full border-2 border-dashed border-line text-xl">
               ⏳
             </span>
             <span className="w-full truncate text-xs font-bold text-ink">{i.name.split(" ")[0]}</span>
@@ -44,7 +45,7 @@ export function TeamPreview({ team }: { team: PublicTeam }) {
         {Array.from({ length: empty }, (_, i) => (
           <li key={`e${i}`} className="flex flex-col items-center text-center">
             <span
-              className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed text-xl font-extrabold"
+              className="flex h-20 w-16 items-center justify-center rounded-full border-2 border-dashed text-xl font-extrabold"
               style={{ borderColor: color, color }}
             >
               ?

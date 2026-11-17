@@ -1,33 +1,10 @@
 "use client";
 
-import { Flag, Squirrel } from "@/components/teams/Art";
-import { FLAGS, SQUIRRELS, TEAM_COLORS, colorHex } from "@/lib/teams-catalog";
+import { Flag } from "@/components/teams/Art";
+import { FLAGS, TEAM_COLORS, colorHex } from "@/lib/teams-catalog";
 
 const pick = (on: boolean) =>
   on ? "border-primary bg-sage ring-2 ring-primary" : "border-line bg-white hover:bg-warm";
-
-export function SquirrelPicker({ value, onChange }: { value: string; onChange: (k: string) => void }) {
-  return (
-    <div className="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="Tu ardilla">
-      {SQUIRRELS.map((s) => (
-        <button
-          key={s.key}
-          type="button"
-          role="radio"
-          aria-checked={value === s.key}
-          title={s.hint}
-          onClick={() => onChange(s.key)}
-          className={`flex flex-col items-center rounded-2xl border p-1 ${pick(value === s.key)}`}
-        >
-          <Squirrel kind={s.key} size={64} />
-          <span className="text-center text-[10px] font-bold leading-tight text-ink">
-            {s.name.replace("La ", "")}
-          </span>
-        </button>
-      ))}
-    </div>
-  );
-}
 
 export function FlagPicker({
   value,

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { MAX_TIME_LIMIT, MIN_TIME_LIMIT, TIME_LIMIT_SECONDS } from "@/lib/time";
-import { COLOR_KEYS, FLAG_KEYS, SQUIRREL_KEYS } from "@/lib/teams-catalog";
+import { isValidLook } from "@/lib/squirrel-look";
+import { COLOR_KEYS, FLAG_KEYS } from "@/lib/teams-catalog";
 import { ALPHABET } from "@/lib/word";
 
 export const emailSchema = z
@@ -104,7 +105,7 @@ export function firstIssue(error: z.ZodError): string {
 // Teams de Ardillas
 // ---------------------------------------------------------------------------
 
-const squirrelSchema = z.enum(SQUIRREL_KEYS, { message: "Escoge tu ardilla." });
+const squirrelSchema = z.string().refine(isValidLook, { message: "Arma tu ardilla." });
 
 const teamFields = {
   name: z

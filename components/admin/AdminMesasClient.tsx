@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { Flag, Squirrel } from "@/components/teams/Art";
+import { Flag } from "@/components/teams/Art";
+import { SquirrelFigure } from "@/components/teams/SquirrelFigure";
 import type { AdminMesas, AdminTeam } from "@/lib/teams-admin";
 
 /** ISO → "YYYY-MM-DDTHH:MM" in hora Colombia (UTC−5) for <input type="datetime-local">. */
@@ -130,7 +131,7 @@ function TeamCard({
       <ul className="divide-y divide-line text-sm">
         {team.members.map((m) => (
           <li key={m.participantId} className="flex flex-wrap items-center gap-2 py-1.5">
-            <Squirrel kind={m.squirrel} size={32} />
+            <SquirrelFigure look={m.squirrel} color={team.colorHex} size={34} crop="head" />
             <span className="min-w-0 flex-1">
               <span className="font-semibold text-ink">
                 {m.name} {m.isCaptain && <span className="text-[10px] font-extrabold text-cta">CAPITÁN</span>}

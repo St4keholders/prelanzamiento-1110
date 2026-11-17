@@ -6,6 +6,7 @@ import { JoinClient } from "@/components/mesa/JoinClient";
 import { TeamPreview } from "@/components/mesa/TeamPreview";
 import { getPlayerId } from "@/lib/session";
 import { getMesaState, getPublicEvent, getTeamByCode } from "@/lib/teams";
+import { colorHex } from "@/lib/teams-catalog";
 
 async function Content({ params }: { params: Promise<{ code: string }> }) {
   const { code: raw } = await params;
@@ -66,7 +67,7 @@ async function Content({ params }: { params: Promise<{ code: string }> }) {
         </Card>
       );
     } else {
-      action = <JoinClient code={code} />;
+      action = <JoinClient code={code} color={colorHex(team.color)} />;
     }
   }
 
