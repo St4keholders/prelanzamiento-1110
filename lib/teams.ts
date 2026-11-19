@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { serverNow } from "@/lib/env";
 import { supabaseAdmin } from "@/lib/supabase";
+import { tableInfo } from "@/lib/teams-catalog";
 import { TeamError, teamError, teamErrorFrom } from "@/lib/team-error";
 import type {
   MesaState,
@@ -81,7 +82,7 @@ export function isReservationOpen(ev: EventRow, now = serverNow()): boolean {
 export async function getPublicEvent(): Promise<PublicEvent> {
   const [ev, taken] = await Promise.all([
     getEventRow(),
-    db().from("teams").select("id", { count: "exact", head: true }).eq("staff", false),
+    db().from("teams").select("table_number").eq("staff", false),
   ]);
   const now = serverNow();
   return {
@@ -95,7 +96,8 @@ export async function getPublicEvent(): Promise<PublicEvent> {
     reservationsOpen: isReservationOpen(ev, now),
     tableCount: ev.table_count,
     seatsPerTable: ev.seats_per_table,
-    tablesTaken: taken.count ?? 0,
+    tablesTaken: (taken.data ?? []).length,
+    takenTables: (taken.data ?? []).map((t) => Number(t.table_number)).sort((a, b) => a - b),
     serverNow: now.toISOString(),
   };
 }
@@ -229,13 +231,16 @@ export async function saveContact(
 
 export async function createTeam(
   pid: string,
-  input: { name: string; flag: string; color: string; motto: string; squirrel: string },
+  input: { tableNumber: number; motto: string; squirrel: string },
 ): Promise<void> {
-  const { error } = await db().rpc("team_create", {
+  const table = tableInfo(input.tableNumber);
+  if (!table) throw teamError("table_invalid");
+  const { error } = await db().rpc("team_create_at", {
     p_participant: pid,
-    p_name: input.name,
-    p_flag: input.flag,
-    p_color: input.color,
+    p_table: table.number,
+    p_name: table.name,
+    p_flag: table.flag,
+    p_color: table.color,
     p_motto: input.motto,
     p_squirrel: input.squirrel,
     p_now: sqlNow(),
@@ -322,10 +327,8 @@ export async function removeMember(pid: string, memberId: string): Promise<void>
   if (!data?.length) throw teamError("not_member");
 }
 
-export async function updateTeam(
-  pid: string,
-  input: { name: string; flag: string; color: string; motto: string },
-): Promise<void> {
+/** El capitán solo cambia el lema: nombre, bandera y color vienen de la mesa. */
+export async function updateTeam(pid: string, input: { motto: string }): Promise<void> {
   await assertOpen();
   const team = await captainTeam(pid);
   const { error } = await db().from("teams").update(input).eq("id", team.id);

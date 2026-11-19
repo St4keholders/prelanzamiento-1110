@@ -6,7 +6,7 @@ import { getRanking } from "@/lib/ranking";
 import { supabaseAdmin } from "@/lib/supabase";
 import { TeamError } from "@/lib/team-error";
 import { DEFAULT_LOOK, lookName } from "@/lib/squirrel-look";
-import { colorHex, flagName } from "@/lib/teams-catalog";
+import { colorHex, flagName, TABLES } from "@/lib/teams-catalog";
 import { getEventRow } from "@/lib/teams";
 
 function db(): SupabaseClient {
@@ -319,6 +319,9 @@ export async function adminUpdateEvent(input: {
     .order("table_number", { ascending: false })
     .limit(1);
   const maxUsed = (maxRow?.[0]?.table_number as number | undefined) ?? 0;
+  if (input.tableCount > TABLES.length) {
+    throw bad(`Solo hay ${TABLES.length} mesas con nombre y bandera definidos.`);
+  }
   if (input.tableCount < maxUsed) {
     throw bad(`La mesa ${maxUsed} está ocupada: no puedes dejar menos de ${maxUsed} mesas.`);
   }

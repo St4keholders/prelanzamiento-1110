@@ -38,7 +38,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <p className="font-display text-sm font-extrabold text-primary-dark leading-tight">
                 Panel Admin · 1110
               </p>
-              <p className="text-[11px] font-medium text-muted">Ahorcadito (4–14 nov) · Lanzamiento (28 nov)</p>
+              <p className="text-[11px] font-medium text-muted">Ahorcadito (4–14 nov) · Lanzamiento (5 dic)</p>
             </div>
           </div>
 

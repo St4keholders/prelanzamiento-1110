@@ -348,7 +348,7 @@ function EventForm({ data, busy, act }: { data: AdminMesas; busy: boolean; act: 
       <label className="text-xs font-bold md:col-span-2">Enlace de Google Maps<input className={field} value={f.mapsUrl} onChange={set("mapsUrl")} /></label>
       <label className="text-xs font-bold">Abren reservas (hora Colombia)<input type="datetime-local" className={field} value={f.reservationsOpenAt} onChange={set("reservationsOpenAt")} required /></label>
       <label className="text-xs font-bold">Cierran reservas (hora Colombia)<input type="datetime-local" className={field} value={f.reservationsCloseAt} onChange={set("reservationsCloseAt")} required /></label>
-      <label className="text-xs font-bold">Número de mesas<input type="number" min={1} max={50} className={field} value={f.tableCount} onChange={set("tableCount")} required /></label>
+      <label className="text-xs font-bold">Número de mesas<input type="number" min={1} max={10} className={field} value={f.tableCount} onChange={set("tableCount")} required /></label>
       <label className="text-xs font-bold">Personas por mesa<input type="number" min={1} max={20} className={field} value={f.seatsPerTable} onChange={set("seatsPerTable")} required /></label>
       <div className="flex gap-2 md:col-span-2">
         <button type="submit" disabled={busy} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white">Guardar</button>

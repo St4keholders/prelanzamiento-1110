@@ -5,14 +5,13 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { LookEditor } from "@/components/mesa/LookEditor";
 import { ContactFields, contactFrom } from "@/components/mesa/ContactFields";
-import { ColorPicker, FlagPicker } from "@/components/mesa/Pickers";
 import { TeamPreview } from "@/components/mesa/TeamPreview";
 import { ShareButton } from "@/components/ranking/ShareButton";
 import { Flag } from "@/components/teams/Art";
 import { formatEventDate, formatShortDateTime } from "@/lib/event-format";
 import { DEFAULT_LOOK } from "@/lib/squirrel-look";
 import type { MesaState, MyContact, PublicTeam } from "@/lib/team-types";
-import { colorHex } from "@/lib/teams-catalog";
+import { colorHex, TABLES, tableInfo } from "@/lib/teams-catalog";
 
 const input =
   "w-full rounded-2xl border border-line bg-white px-4 py-2.5 text-sm font-medium text-ink";
@@ -123,7 +122,7 @@ export function MesaClient({ initial }: { initial: MesaState }) {
           </Link>
         </Box>
       ) : (
-        <CreateTeam me={state.me} free={free} total={event.tableCount} busy={busy} act={act} />
+        <CreateTeam me={state.me} event={event} busy={busy} act={act} />
       )}
     </div>
   );
@@ -133,85 +132,98 @@ type Act = (action: string, body?: unknown, okText?: string) => Promise<boolean>
 
 function CreateTeam({
   me,
-  free,
-  total,
+  event,
   busy,
   act,
 }: {
   me: MyContact;
-  free: number;
-  total: number;
+  event: MesaState["event"];
   busy: boolean;
   act: Act;
 }) {
+  const tables = TABLES.filter((t) => t.number <= event.tableCount);
+  const taken = new Set(event.takenTables);
+  const free = tables.filter((t) => !taken.has(t.number)).length;
   const [contact, setContact] = useState(() => contactFrom(me));
-  const [name, setName] = useState("");
-  const [flag, setFlag] = useState("partida-doble");
-  const [color, setColor] = useState("verde");
+  const [table, setTable] = useState<number | null>(null);
   const [motto, setMotto] = useState("");
   const [squirrel, setSquirrel] = useState(DEFAULT_LOOK);
+  const chosen = table ? tableInfo(table) : undefined;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    await act("create", { ...contact, name, flag, color, motto, squirrel }, "¡Mesa reservada! Ahora invita a tu team.");
+    if (!table) return;
+    await act("create", { ...contact, tableNumber: table, motto, squirrel }, "¡Mesa reservada! Ahora invita a tu team.");
   }
 
   return (
     <form onSubmit={submit} className="space-y-3">
       <Box>
         <div>
-          <p className="font-display text-lg font-extrabold text-primary-dark">Crea tu Team de Ardillas</p>
+          <p className="font-display text-lg font-extrabold text-primary-dark">Escoge tu mesa</p>
           <p className="text-xs text-muted">
-            Quedan <strong className="text-ink">{free} de {total}</strong> mesas. La primera persona en
-            crear su team se queda con la mesa; tú serás el capitán.
+            Quedan <strong className="text-ink">{free} de {tables.length}</strong> mesas. Cada mesa ya tiene su
+            nombre, bandera y color. Quien la reserve primero se queda con ella y es el capitán.
           </p>
         </div>
-      </Box>
-      <Box>
-        <div>
-          <p className="font-display text-base font-extrabold text-primary-dark">Tus datos</p>
-          <p className="text-xs text-muted">Los necesitamos para confirmar tu puesto en el evento.</p>
-        </div>
-        <ContactFields email={me.email} value={contact} onChange={setContact} idPrefix="create" />
-      </Box>
-      <Box>
-        <div>
-          <label htmlFor="team-name" className={label}>Nombre del team</label>
-          <input
-            id="team-name"
-            className={input}
-            required
-            maxLength={30}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Ej. Los Debe y Haber"
-          />
-        </div>
-        <div>
-          <label htmlFor="team-motto" className={label}>Lema o grito de guerra (opcional)</label>
-          <input
-            id="team-motto"
-            className={input}
-            maxLength={60}
-            value={motto}
-            onChange={(e) => setMotto(e.target.value)}
-            placeholder="Ej. Ni un peso sin conciliar"
-          />
+        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Mesas">
+          {tables.map((t) => {
+            const isTaken = taken.has(t.number);
+            const on = table === t.number;
+            return (
+              <button
+                key={t.number}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                disabled={isTaken}
+                onClick={() => setTable(t.number)}
+                className={`flex flex-col items-center gap-1 rounded-2xl border-2 p-2 text-center ${
+                  isTaken
+                    ? "cursor-not-allowed border-line bg-warm opacity-50"
+                    : on
+                      ? "border-primary bg-[#F2C850]"
+                      : "border-line bg-white hover:bg-warm"
+                }`}
+              >
+                <Flag kind={t.flag} color={colorHex(t.color)} size={64} />
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted">Mesa {t.number}</span>
+                <span className="text-sm font-extrabold leading-tight text-ink">{t.name}</span>
+                {isTaken && <span className="text-[11px] font-bold text-danger">Reservada</span>}
+              </button>
+            );
+          })}
         </div>
       </Box>
-      <Box>
-        <p className={label}>Color del team</p>
-        <ColorPicker value={color} onChange={setColor} />
-        <p className={label}>Bandera del team</p>
-        <FlagPicker value={flag} color={color} onChange={setFlag} />
-      </Box>
-      <Box>
-        <p className={label}>Arma tu ardilla</p>
-        <LookEditor value={squirrel} color={colorHex(color)} onChange={setSquirrel} />
-      </Box>
-      <button type="submit" disabled={busy} className={primaryBtn}>
-        {busy ? "Reservando…" : "Reservar mesa"}
-      </button>
+      {chosen && (
+        <>
+          <Box>
+            <div>
+              <p className="font-display text-base font-extrabold text-primary-dark">Tus datos</p>
+              <p className="text-xs text-muted">Los necesitamos para confirmar tu puesto en el evento.</p>
+            </div>
+            <ContactFields email={me.email} value={contact} onChange={setContact} idPrefix="create" />
+          </Box>
+          <Box>
+            <label htmlFor="team-motto" className={label}>Lema o grito de guerra de {chosen.name} (opcional)</label>
+            <input
+              id="team-motto"
+              className={input}
+              maxLength={60}
+              value={motto}
+              onChange={(e) => setMotto(e.target.value)}
+              placeholder="Ej. Ni un peso sin conciliar"
+            />
+          </Box>
+          <Box>
+            <p className={label}>Arma tu ardilla</p>
+            <LookEditor value={squirrel} color={colorHex(chosen.color)} onChange={setSquirrel} />
+          </Box>
+          <button type="submit" disabled={busy} className={primaryBtn}>
+            {busy ? "Reservando…" : `Reservar la mesa ${chosen.number}`}
+          </button>
+        </>
+      )}
     </form>
   );
 }
@@ -396,9 +408,6 @@ function CaptainTools({
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [editing, setEditing] = useState(false);
-  const [tName, setTName] = useState(team.name);
-  const [tFlag, setTFlag] = useState(team.flag);
-  const [tColor, setTColor] = useState(team.color);
   const [tMotto, setTMotto] = useState(team.motto);
 
   return (
@@ -470,21 +479,17 @@ function CaptainTools({
       <Box>
         {!editing ? (
           <button type="button" onClick={() => setEditing(true)} className={secondaryBtn}>
-            Editar nombre, bandera, color o lema
+            Editar el lema
           </button>
         ) : (
           <form
             className="space-y-2"
             onSubmit={async (e) => {
               e.preventDefault();
-              if (await act("update", { name: tName, flag: tFlag, color: tColor, motto: tMotto }, "Team actualizado."))
-                setEditing(false);
+              if (await act("update", { motto: tMotto }, "Lema actualizado.")) setEditing(false);
             }}
           >
-            <input className={input} required maxLength={30} value={tName} onChange={(e) => setTName(e.target.value)} />
             <input className={input} maxLength={60} value={tMotto} onChange={(e) => setTMotto(e.target.value)} placeholder="Lema (opcional)" />
-            <ColorPicker value={tColor} onChange={setTColor} />
-            <FlagPicker value={tFlag} color={tColor} onChange={setTFlag} />
             <button type="submit" disabled={busy} className={primaryBtn}>
               Guardar cambios
             </button>

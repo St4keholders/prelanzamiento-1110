@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { MAX_TIME_LIMIT, MIN_TIME_LIMIT, TIME_LIMIT_SECONDS } from "@/lib/time";
 import { isValidLook } from "@/lib/squirrel-look";
-import { COLOR_KEYS, FLAG_KEYS } from "@/lib/teams-catalog";
+import { COLOR_KEYS, FLAG_KEYS, TABLES } from "@/lib/teams-catalog";
 import { ALPHABET } from "@/lib/word";
 
 export const emailSchema = z
@@ -148,8 +148,17 @@ const contactFields = {
 };
 export const contactSchema = z.object(contactFields);
 
-export const teamCreateSchema = z.object({ ...teamFields, ...contactFields, squirrel: squirrelSchema });
-export const teamUpdateSchema = z.object(teamFields);
+export const teamCreateSchema = z.object({
+  tableNumber: z.coerce
+    .number({ message: "Escoge una mesa." })
+    .int({ message: "Escoge una mesa." })
+    .min(1, { message: "Escoge una mesa." })
+    .max(TABLES.length, { message: "Escoge una mesa." }),
+  motto: teamFields.motto,
+  ...contactFields,
+  squirrel: squirrelSchema,
+});
+export const teamUpdateSchema = z.object({ motto: teamFields.motto });
 export const teamJoinSchema = z.object({
   code: z
     .string()
