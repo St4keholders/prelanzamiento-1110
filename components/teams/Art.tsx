@@ -107,6 +107,24 @@ function FlagIcon({ kind }: { kind: string }) {
           <path d="M49 43 L57 51 L72 35" fill="none" stroke={W} strokeWidth="5" strokeLinecap="round" />
         </g>
       );
+    case "sindicato": // megáfono de protesta
+      return (
+        <g>
+          <path d="M36 36 L56 36 L80 21 L80 65 L56 50 L36 50 Z" fill={W} />
+          <path d="M33 34 L38 34 L38 52 L33 52 Z" fill={W} fillOpacity="0.85" />
+          <path d="M45 50 L50 63 L57 63 L54 50 Z" fill={W} fillOpacity="0.85" />
+          <path d="M87 33 C92 38 92 48 87 53" fill="none" stroke={W} strokeWidth="3" strokeLinecap="round" />
+          <path d="M93 27 C101 36 101 50 93 59" fill="none" stroke={W} strokeWidth="3" strokeLinecap="round" />
+        </g>
+      );
+    case "exogena": // carpeta que se envía
+      return (
+        <g>
+          <path d="M30 26 L50 26 L56 32 L90 32 L90 66 L30 66 Z" fill={W} fillOpacity="0.7" />
+          <path d="M30 38 L90 38 L90 66 L30 66 Z" fill={W} />
+          <path d="M60 61 L60 44 M52 51 L60 43 L68 51" fill="none" stroke="#000000" strokeOpacity="0.45" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+        </g>
+      );
     default:
       return null;
   }

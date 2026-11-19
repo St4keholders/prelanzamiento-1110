@@ -13,6 +13,8 @@ export interface PublicEvent {
   tableCount: number;
   seatsPerTable: number;
   tablesTaken: number;
+  /** Números de las mesas públicas ya apartadas. */
+  takenTables: number[];
   serverNow: string;
 }
 

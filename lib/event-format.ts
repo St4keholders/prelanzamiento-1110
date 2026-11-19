@@ -20,7 +20,7 @@ const shortFmt = new Intl.DateTimeFormat("es-CO", {
   hour12: true,
 });
 
-/** "viernes, 28 de noviembre · 4:00 p. m." */
+/** "sábado, 5 de diciembre · 4:00 p. m." */
 export function formatEventDate(iso: string): string {
   const d = new Date(iso);
   return `${dateFmt.format(d)} · ${timeFmt.format(d)}`;

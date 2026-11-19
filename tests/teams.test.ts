@@ -5,8 +5,8 @@ import {
   BEARDS, DEFAULT_LOOK, DEFAULT_LOOK_F, FACES, HANDS, HEADS, OUTFITS, STYLES,
   composeLook, isValidLook, lookName, optionsFor, parseLook, randomLook, switchStyle,
 } from "@/lib/squirrel-look";
-import { FLAGS, TEAM_COLORS, colorHex } from "@/lib/teams-catalog";
-import { contactSchema, teamAcceptSchema, teamCreateSchema, teamInviteSchema, teamJoinSchema } from "@/lib/validation";
+import { COLOR_KEYS, FLAG_KEYS, FLAGS, TABLES, TEAM_COLORS, colorHex, tableInfo } from "@/lib/teams-catalog";
+import { contactSchema, teamAcceptSchema, teamCreateSchema, teamInviteSchema, teamJoinSchema, teamUpdateSchema } from "@/lib/validation";
 
 describe("ranking utils", () => {
   it("longest streak of won days", () => {
@@ -21,10 +21,10 @@ describe("ranking utils", () => {
 });
 
 describe("teams catalog", () => {
-  it("has 8 flags and colors with unique keys", () => {
+  it("has 10 flags and colors with unique keys", () => {
     for (const list of [FLAGS, TEAM_COLORS]) {
-      expect(list).toHaveLength(8);
-      expect(new Set(list.map((x) => x.key)).size).toBe(8);
+      expect(list).toHaveLength(10);
+      expect(new Set(list.map((x) => x.key)).size).toBe(10);
     }
     expect(colorHex("petroleo")).toBe("#1F6F78");
     expect(colorHex("nope")).toBe("#2B5932");
@@ -36,7 +36,7 @@ const CONTACT = { fullName: "  Ana   Ríos ", phone: "300 123-4567", profession:
 describe("contact data", () => {
   it("is required to reserve, join or accept", () => {
     const sq = "ardilla|blusa|lazo|lentes|perlas|cafe";
-    const team = { name: "Team", flag: "niif", color: "verde", squirrel: sq };
+    const team = { tableNumber: 3, squirrel: sq };
     expect(teamCreateSchema.safeParse(team).success).toBe(false);
     expect(teamCreateSchema.safeParse({ ...team, ...CONTACT, profession: " " }).success).toBe(false);
     expect(teamCreateSchema.safeParse({ ...team, ...CONTACT, phone: "12" }).success).toBe(false);
@@ -48,31 +48,42 @@ describe("contact data", () => {
 });
 
 describe("team validation", () => {
-  it("creates a team with normalized fields", () => {
+  it("creates a team on a fixed table", () => {
     const r = teamCreateSchema.parse({
       ...CONTACT,
-      name: "  Los   Debe ",
-      flag: "niif",
-      color: "verde",
+      tableNumber: "4",
+      motto: "  Ni un peso sin conciliar ",
       squirrel: "ardillo|chaleco|vaquero|lentes|bigote|calculadora",
     });
     expect(r).toEqual({
       fullName: "Ana Ríos",
       phone: "3001234567",
       profession: "Contadora pública",
-      name: "Los Debe",
-      flag: "niif",
-      color: "verde",
-      motto: "",
+      tableNumber: 4,
+      motto: "Ni un peso sin conciliar",
       squirrel: "ardillo|chaleco|vaquero|lentes|bigote|calculadora",
     });
   });
-  it("rejects unknown options and long names", () => {
-    const base = { ...CONTACT, name: "Team", flag: "niif", color: "verde", squirrel: "ardilla|vestido|ninguno|ninguna|ninguna|ninguno" };
-    expect(teamCreateSchema.safeParse({ ...base, flag: "pirata" }).success).toBe(false);
+  it("rejects unknown tables and bad looks", () => {
+    const base = { ...CONTACT, tableNumber: 1, squirrel: "ardilla|vestido|ninguno|ninguna|ninguna|ninguno" };
+    expect(teamCreateSchema.safeParse({ ...base, tableNumber: 0 }).success).toBe(false);
+    expect(teamCreateSchema.safeParse({ ...base, tableNumber: 11 }).success).toBe(false);
+    expect(teamCreateSchema.safeParse({ ...base, tableNumber: 2.5 }).success).toBe(false);
     expect(teamCreateSchema.safeParse({ ...base, squirrel: "zorro" }).success).toBe(false);
-    expect(teamCreateSchema.safeParse({ ...base, squirrel: "vaquero|lentes|bigote" }).success).toBe(false);
-    expect(teamCreateSchema.safeParse({ ...base, name: "x".repeat(31) }).success).toBe(false);
+    expect(teamCreateSchema.safeParse({ ...base, motto: "x".repeat(61) }).success).toBe(false);
+    expect(teamUpdateSchema.parse({ motto: " Hola " })).toEqual({ motto: "Hola" });
+  });
+  it("has 10 tables with unique names and valid flags and colors", () => {
+    expect(TABLES).toHaveLength(10);
+    expect(new Set(TABLES.map((t) => t.name)).size).toBe(10);
+    expect(new Set(TABLES.map((t) => t.flag)).size).toBe(10);
+    expect(new Set(TABLES.map((t) => t.color)).size).toBe(10);
+    for (const t of TABLES) {
+      expect(FLAG_KEYS).toContain(t.flag);
+      expect(COLOR_KEYS).toContain(t.color);
+    }
+    expect(tableInfo(1)?.name).toBe("Las Sindiardillas");
+    expect(tableInfo(11)).toBeUndefined();
   });
   it("normalizes join codes and invite emails", () => {
     expect(teamJoinSchema.parse({ ...CONTACT, code: " k7q2xm ", squirrel: "ardilla|blusa|lazo|lentes|perlas|cafe" }).code).toBe("K7Q2XM");
