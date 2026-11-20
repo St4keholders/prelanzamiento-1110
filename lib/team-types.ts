@@ -69,6 +69,8 @@ export interface MyContact {
   phone: string;
   /** null hasta que la deje al reservar o unirse a una mesa. */
   profession: string | null;
+  /** true si ya aceptó la Política de Tratamiento de Datos. */
+  dataConsent: boolean;
 }
 
 export interface MesaState {

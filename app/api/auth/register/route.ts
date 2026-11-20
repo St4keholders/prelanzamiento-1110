@@ -1,3 +1,4 @@
+import { recordConsent } from "@/lib/consent";
 import { handleError, jsonError, jsonOk, readJson } from "@/lib/http";
 import { createPlayerSession } from "@/lib/session";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
       id = existing.id;
     }
 
+    await recordConsent(id);
     await createPlayerSession(id);
     return jsonOk({ ok: true });
   } catch (err) {

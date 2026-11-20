@@ -23,6 +23,8 @@ export interface AdminMember {
   email: string;
   phone: string;
   profession: string;
+  /** Fecha en que aceptó la Política de Tratamiento de Datos ("" si no). */
+  dataConsentAt: string;
   squirrel: string;
   isCaptain: boolean;
   joinedAt: string;
@@ -59,7 +61,10 @@ export async function getAdminMesas(): Promise<AdminMesas> {
   for (const r of [teams, members, invites]) if (r.error) throw new Error(r.error.message);
 
   const ids = [...new Set((members.data ?? []).map((m: { participant_id: string }) => m.participant_id))];
-  const people = new Map<string, { full_name: string; email: string; phone: string; profession?: string | null }>();
+  const people = new Map<
+    string,
+    { full_name: string; email: string; phone: string; profession?: string | null; data_consent_at?: string | null }
+  >();
   for (let i = 0; i < ids.length; i += 200) {
     const { data } = await db()
       .from("participants")
@@ -91,6 +96,7 @@ export async function getAdminMesas(): Promise<AdminMesas> {
             email: p?.email ?? "",
             phone: p?.phone ?? "",
             profession: p?.profession ?? "",
+            dataConsentAt: p?.data_consent_at ?? "",
             squirrel: m.squirrel,
             isCaptain: m.participant_id === t.captain_id,
             joinedAt: m.joined_at,
@@ -346,6 +352,13 @@ export async function adminUpdateEvent(input: {
 // Exportes
 // ---------------------------------------------------------------------------
 
+function consentDate(iso: string): string {
+  if (!iso) return "No";
+  return new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", dateStyle: "short", timeStyle: "short" }).format(
+    new Date(iso),
+  );
+}
+
 export async function mesasSheet(): Promise<Sheet> {
   const { event, teams } = await getAdminMesas();
   const rows: (string | number)[][] = [];
@@ -354,16 +367,16 @@ export async function mesasSheet(): Promise<Sheet> {
     for (const m of t.members) {
       rows.push([
         t.tableNumber, t.name, status, flagName(t.flag), t.motto,
-        m.isCaptain ? "Capitán" : "Integrante", m.name, m.email, m.phone, m.profession, lookName(m.squirrel), "Dentro",
+        m.isCaptain ? "Capitán" : "Integrante", m.name, m.email, m.phone, m.profession, consentDate(m.dataConsentAt), lookName(m.squirrel), "Dentro",
       ]);
     }
     for (const i of t.invites) {
-      rows.push([t.tableNumber, t.name, status, flagName(t.flag), t.motto, "Invitado", i.name, i.email, "", "", "", "Pendiente"]);
+      rows.push([t.tableNumber, t.name, status, flagName(t.flag), t.motto, "Invitado", i.name, i.email, "", "", "", "", "Pendiente"]);
     }
   }
   return {
     name: `Mesas (${teams.filter((t) => !t.staff).length} de ${event.table_count})`,
-    columns: ["Mesa", "Team", "Estado mesa", "Bandera", "Lema", "Rol", "Nombre", "Correo", "Celular", "Profesión", "Ardilla", "Estado"],
+    columns: ["Mesa", "Team", "Estado mesa", "Bandera", "Lema", "Rol", "Nombre", "Correo", "Celular", "Profesión", "Acepta política de datos", "Ardilla", "Estado"],
     rows,
   };
 }

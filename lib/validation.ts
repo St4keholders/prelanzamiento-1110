@@ -50,12 +50,18 @@ export const professionSchema = z
       .max(80, { message: "La profesión es muy larga (máximo 80 caracteres)." }),
   );
 
+/** Autorización de tratamiento de datos (Ley 1581 de 2012): debe venir marcada. */
+export const consentSchema = z.literal(true, {
+  message: "Para continuar, acepta la Política de Tratamiento de Datos.",
+});
+
 export const registerSchema = z.object({
   email: emailSchema,
   fullName: fullNameSchema,
   phone: phoneSchema,
   /** Solo la pide el registro del evento de lanzamiento. */
   profession: professionSchema.optional(),
+  dataConsent: consentSchema,
 });
 
 export const guessSchema = z.object({
@@ -145,6 +151,7 @@ const contactFields = {
   fullName: fullNameSchema,
   phone: phoneSchema,
   profession: professionSchema,
+  dataConsent: consentSchema,
 };
 export const contactSchema = z.object(contactFields);
 

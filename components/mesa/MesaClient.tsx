@@ -202,7 +202,7 @@ function CreateTeam({
               <p className="font-display text-base font-extrabold text-primary-dark">Tus datos</p>
               <p className="text-xs text-muted">Los necesitamos para confirmar tu puesto en el evento.</p>
             </div>
-            <ContactFields email={me.email} value={contact} onChange={setContact} idPrefix="create" />
+            <ContactFields email={me.email} askConsent={!me.dataConsent} value={contact} onChange={setContact} idPrefix="create" />
           </Box>
           <Box>
             <label htmlFor="team-motto" className={label}>Lema o grito de guerra de {chosen.name} (opcional)</label>
@@ -253,7 +253,7 @@ function InviteView({ state, busy, act }: { state: MesaState; busy: boolean; act
           }}
         >
           <p className="font-display text-base font-extrabold text-primary-dark">Tus datos</p>
-          <ContactFields email={state.me.email} value={contact} onChange={setContact} idPrefix="accept" />
+          <ContactFields email={state.me.email} askConsent={!state.me.dataConsent} value={contact} onChange={setContact} idPrefix="accept" />
           <p className={label}>Arma tu ardilla</p>
           <LookEditor value={squirrel} color={colorHex(inv.color)} onChange={setSquirrel} />
           <button type="submit" disabled={busy} className={primaryBtn}>
@@ -530,7 +530,7 @@ function MyData({ me, busy, act, missing = false }: { me: MyContact; busy: boole
             <p className="text-xs text-ink">Los necesitamos para confirmar tu puesto en el evento.</p>
           )}
         </div>
-        <ContactFields email={me.email} value={contact} onChange={setContact} idPrefix="me" />
+        <ContactFields email={me.email} askConsent={!me.dataConsent} value={contact} onChange={setContact} idPrefix="me" />
         <button type="submit" disabled={busy} className={primaryBtn}>
           Guardar mis datos
         </button>

@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { serverNow } from "@/lib/env";
+import { recordConsent } from "@/lib/consent";
 import { supabaseAdmin } from "@/lib/supabase";
 import { tableInfo } from "@/lib/teams-catalog";
 import { TeamError, teamError, teamErrorFrom } from "@/lib/team-error";
@@ -192,10 +193,22 @@ export async function getMesaState(pid: string): Promise<MesaState> {
     }
   }
 
-  const p = me.data as { full_name: string; email: string; phone: string; profession?: string | null };
+  const p = me.data as {
+    full_name: string;
+    email: string;
+    phone: string;
+    profession?: string | null;
+    data_consent_at?: string | null;
+  };
   return {
     event,
-    me: { fullName: p.full_name, email: p.email, phone: p.phone, profession: p.profession ?? null },
+    me: {
+      fullName: p.full_name,
+      email: p.email,
+      phone: p.phone,
+      profession: p.profession ?? null,
+      dataConsent: Boolean(p.data_consent_at),
+    },
     team,
     invite,
   };
@@ -227,6 +240,8 @@ export async function saveContact(
     .update({ full_name: c.fullName, phone: c.phone, profession: c.profession })
     .eq("id", pid);
   if (error) throw new Error(error.message);
+  // Los esquemas exigen la casilla marcada antes de llegar aquí.
+  await recordConsent(pid);
 }
 
 export async function createTeam(
