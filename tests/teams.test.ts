@@ -21,10 +21,11 @@ describe("ranking utils", () => {
 });
 
 describe("teams catalog", () => {
-  it("has 10 flags and colors with unique keys", () => {
+  it("has flags and colors with unique keys", () => {
+    expect(FLAGS).toHaveLength(19);
+    expect(TEAM_COLORS).toHaveLength(15);
     for (const list of [FLAGS, TEAM_COLORS]) {
-      expect(list).toHaveLength(10);
-      expect(new Set(list.map((x) => x.key)).size).toBe(10);
+      expect(new Set(list.map((x) => x.key)).size).toBe(list.length);
     }
     expect(colorHex("petroleo")).toBe("#1F6F78");
     expect(colorHex("nope")).toBe("#2B5932");
@@ -82,7 +83,8 @@ describe("team validation", () => {
       expect(FLAG_KEYS).toContain(t.flag);
       expect(COLOR_KEYS).toContain(t.color);
     }
-    expect(tableInfo(1)?.name).toBe("Las Sindiardillas");
+    expect(tableInfo(1)?.name).toBe("Sindiardillas");
+    expect(tableInfo(9)?.name).toBe("El Clan de la Bellota");
     expect(tableInfo(11)).toBeUndefined();
   });
   it("normalizes join codes and invite emails", () => {

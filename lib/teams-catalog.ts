@@ -11,6 +11,15 @@ export const FLAGS = [
   { key: "sello", name: "Sello de Auditoría" },
   { key: "sindicato", name: "Sindicato" },
   { key: "exogena", name: "Exógena" },
+  { key: "debi", name: "Debi" },
+  { key: "credi", name: "Credi" },
+  { key: "nuez", name: "Nuez" },
+  { key: "balance-rojo", name: "Balance Rojo" },
+  { key: "ringo", name: "Ringo" },
+  { key: "avellana", name: "Avellana" },
+  { key: "rompenueces", name: "Rompenueces" },
+  { key: "clan-bellota", name: "Clan de la Bellota" },
+  { key: "escuadron-bellota", name: "Escuadrón Bellota" },
 ] as const;
 
 export const TEAM_COLORS = [
@@ -24,6 +33,11 @@ export const TEAM_COLORS = [
   { key: "cafe", name: "Café ardilla", hex: "#8A4B22" },
   { key: "cielo", name: "Azul cielo", hex: "#2F86C8" },
   { key: "rosado", name: "Rosado", hex: "#D6458A" },
+  { key: "vino", name: "Vino", hex: "#7A1E3A" },
+  { key: "negro", name: "Negro", hex: "#1F1F1F" },
+  { key: "lila", name: "Lila", hex: "#9474C4" },
+  { key: "mostaza", name: "Mostaza", hex: "#C08A12" },
+  { key: "marino", name: "Azul marino", hex: "#1E3A5F" },
 ] as const;
 
 export type FlagKey = (typeof FLAGS)[number]["key"];
@@ -37,16 +51,16 @@ export const COLOR_KEYS = TEAM_COLORS.map((c) => c.key) as [TeamColorKey, ...Tea
  * El capitán escoge una mesa libre; el team toma su nombre, bandera y color.
  */
 export const TABLES = [
-  { number: 1, name: "Las Sindiardillas", flag: "sindicato", color: "cafe" },
-  { number: 2, name: "Las Auditardillas", flag: "sello", color: "rojo" },
-  { number: 3, name: "Las Conciliardillas", flag: "conciliacion", color: "petroleo" },
-  { number: 4, name: "Las Niifardillas", flag: "niif", color: "morado" },
-  { number: 5, name: "Las Partidardillas", flag: "partida-doble", color: "verde" },
-  { number: 6, name: "Las Balancardillas", flag: "balance-general", color: "lima" },
-  { number: 7, name: "Las Cuentardillas", flag: "libro-mayor", color: "cielo" },
-  { number: 8, name: "Las Calculardillas", flag: "calculadora", color: "amarillo" },
-  { number: 9, name: "Las Rentardillas", flag: "cierre-fiscal", color: "naranja" },
-  { number: 10, name: "Las Exogenardillas", flag: "exogena", color: "rosado" },
+  { number: 1, name: "Sindiardillas", flag: "sindicato", color: "cafe" },
+  { number: 2, name: "Team Debi", flag: "debi", color: "verde" },
+  { number: 3, name: "Team Credi", flag: "credi", color: "vino" },
+  { number: 4, name: "Team Nuez", flag: "nuez", color: "naranja" },
+  { number: 5, name: "Team Balance Rojo", flag: "balance-rojo", color: "negro" },
+  { number: 6, name: "Team Ringo", flag: "ringo", color: "lila" },
+  { number: 7, name: "Team Avellana", flag: "avellana", color: "mostaza" },
+  { number: 8, name: "Rompenueces", flag: "rompenueces", color: "marino" },
+  { number: 9, name: "El Clan de la Bellota", flag: "clan-bellota", color: "lima" },
+  { number: 10, name: "Escuadrón Bellota", flag: "escuadron-bellota", color: "rosado" },
 ] as const satisfies readonly { number: number; name: string; flag: FlagKey; color: TeamColorKey }[];
 
 export type TableInfo = (typeof TABLES)[number];
