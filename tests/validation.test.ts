@@ -13,12 +13,18 @@ describe("validation", () => {
       email: "  Juan@Gmail.COM ",
       fullName: "  Juan   Pérez ",
       phone: "300 123 4567",
+      dataConsent: true,
     });
     expect(ok.success && ok.data).toEqual({
       email: "juan@gmail.com",
       fullName: "Juan Pérez",
       phone: "3001234567",
+      dataConsent: true,
     });
+    expect(
+      registerSchema.safeParse({ email: "a@b.co", fullName: "Ana Ríos", phone: "3001234567", dataConsent: false })
+        .success,
+    ).toBe(false);
     expect(registerSchema.safeParse({ email: "x", fullName: "Ab", phone: "12" }).success).toBe(
       false,
     );

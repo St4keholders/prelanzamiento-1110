@@ -1,15 +1,17 @@
 "use client";
 
+import { ConsentCheck } from "@/components/ConsentCheck";
 import type { MyContact } from "@/lib/team-types";
 
 export interface Contact {
   fullName: string;
   phone: string;
   profession: string;
+  dataConsent: boolean;
 }
 
 export function contactFrom(me: MyContact): Contact {
-  return { fullName: me.fullName, phone: me.phone, profession: me.profession ?? "" };
+  return { fullName: me.fullName, phone: me.phone, profession: me.profession ?? "", dataConsent: me.dataConsent };
 }
 
 const PROFESSIONS = [
@@ -29,19 +31,24 @@ const input =
   "w-full rounded-2xl border border-line bg-white px-4 py-2.5 text-sm font-medium text-ink";
 const label = "mb-1 block text-xs font-bold text-ink";
 
-/** Nombre completo, correo (solo lectura), teléfono y profesión. */
+/**
+ * Nombre completo, correo (solo lectura), teléfono y profesión, más la casilla de la
+ * Política de Tratamiento de Datos si el jugador todavía no la ha aceptado.
+ */
 export function ContactFields({
   email,
   value,
   onChange,
+  askConsent,
   idPrefix = "c",
 }: {
   email: string;
   value: Contact;
   onChange: (c: Contact) => void;
+  askConsent: boolean;
   idPrefix?: string;
 }) {
-  const set = (k: keyof Contact) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const set = (k: "fullName" | "phone" | "profession") => (e: React.ChangeEvent<HTMLInputElement>) =>
     onChange({ ...value, [k]: e.target.value });
   return (
     <div className="space-y-2.5">
@@ -105,6 +112,13 @@ export function ContactFields({
           ))}
         </datalist>
       </div>
+      {askConsent && (
+        <ConsentCheck
+          id={`${idPrefix}-consent`}
+          checked={value.dataConsent}
+          onChange={(v) => onChange({ ...value, dataConsent: v })}
+        />
+      )}
     </div>
   );
 }

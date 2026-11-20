@@ -45,7 +45,7 @@ export function JoinClient({ code, color, me }: { code: string; color: string; m
         <p className="font-display text-base font-extrabold text-primary-dark">Tus datos</p>
         <p className="text-xs text-muted">Los necesitamos para confirmar tu puesto en el evento.</p>
       </div>
-      <ContactFields email={me.email} value={contact} onChange={setContact} idPrefix="join" />
+      <ContactFields email={me.email} askConsent={!me.dataConsent} value={contact} onChange={setContact} idPrefix="join" />
       <p className="text-xs font-bold text-ink">Arma tu ardilla</p>
       <LookEditor value={squirrel} color={color} onChange={setSquirrel} />
       {error && <p role="alert" className="text-sm font-bold text-danger">{error}</p>}

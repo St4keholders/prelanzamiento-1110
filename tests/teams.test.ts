@@ -32,7 +32,12 @@ describe("teams catalog", () => {
   });
 });
 
-const CONTACT = { fullName: "  Ana   Ríos ", phone: "300 123-4567", profession: "  Contadora   pública " };
+const CONTACT = {
+  fullName: "  Ana   Ríos ",
+  phone: "300 123-4567",
+  profession: "  Contadora   pública ",
+  dataConsent: true,
+};
 
 describe("contact data", () => {
   it("is required to reserve, join or accept", () => {
@@ -45,6 +50,14 @@ describe("contact data", () => {
     expect(teamAcceptSchema.safeParse({ squirrel: sq }).success).toBe(false);
     expect(teamAcceptSchema.parse({ ...CONTACT, squirrel: sq }).profession).toBe("Contadora pública");
     expect(contactSchema.safeParse({ ...CONTACT, profession: "x".repeat(81) }).success).toBe(false);
+  });
+  it("requires accepting the data policy", () => {
+    const sq = "ardilla|blusa|lazo|lentes|perlas|cafe";
+    expect(contactSchema.safeParse({ ...CONTACT, dataConsent: false }).success).toBe(false);
+    const noConsent: Partial<typeof CONTACT> = { ...CONTACT };
+    delete noConsent.dataConsent;
+    expect(contactSchema.safeParse(noConsent).success).toBe(false);
+    expect(teamAcceptSchema.safeParse({ ...CONTACT, dataConsent: "true", squirrel: sq }).success).toBe(false);
   });
 });
 
@@ -60,6 +73,7 @@ describe("team validation", () => {
       fullName: "Ana Ríos",
       phone: "3001234567",
       profession: "Contadora pública",
+      dataConsent: true,
       tableNumber: 4,
       motto: "Ni un peso sin conciliar",
       squirrel: "ardillo|chaleco|vaquero|lentes|bigote|calculadora",

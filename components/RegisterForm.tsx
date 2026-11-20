@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState, type FormEvent } from "react";
+import { ConsentCheck } from "@/components/ConsentCheck";
 
 interface RegisterFormProps {
   onAuthenticated: () => void;
@@ -29,6 +30,7 @@ export function RegisterForm({ onAuthenticated, variant = "game" }: RegisterForm
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [profession, setProfession] = useState("");
+  const [dataConsent, setDataConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,12 +70,18 @@ export function RegisterForm({ onAuthenticated, variant = "game" }: RegisterForm
   async function handleRegisterSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!dataConsent) {
+      setError("Para continuar, acepta la Política de Tratamiento de Datos.");
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(isEvent ? { email, fullName, phone, profession } : { email, fullName, phone }),
+        body: JSON.stringify(
+          isEvent ? { email, fullName, phone, profession, dataConsent } : { email, fullName, phone, dataConsent },
+        ),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -227,6 +235,8 @@ export function RegisterForm({ onAuthenticated, variant = "game" }: RegisterForm
               </datalist>
             </div>
           )}
+
+          <ConsentCheck id="register-consent" checked={dataConsent} onChange={setDataConsent} />
 
           {error && (
             <p role="alert" className="rounded-xl bg-danger/10 px-3 py-2 text-xs font-bold text-danger">
