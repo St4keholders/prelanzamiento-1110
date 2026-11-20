@@ -22,7 +22,7 @@ export function Flag({ kind, color, size = 96 }: { kind: string; color: string; 
 
 const W = "#FFFFFF";
 
-function FlagIcon({ kind }: { kind: string }) {
+export function FlagIcon({ kind }: { kind: string }) {
   switch (kind) {
     case "partida-doble": // balanza Debe | Haber
       return (
@@ -125,7 +125,117 @@ function FlagIcon({ kind }: { kind: string }) {
           <path d="M60 61 L60 44 M52 51 L60 43 L68 51" fill="none" stroke="#000000" strokeOpacity="0.45" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
         </g>
       );
+    case "debi": // gafas rectangulares y corbata
+      return (
+        <g>
+          <path d="M30 22 L54 22 L54 38 L30 38 Z M66 22 L90 22 L90 38 L66 38 Z" fill={W} fillOpacity="0.25" stroke={W} strokeWidth="4.5" strokeLinejoin="round" />
+          <path d="M54 29 L66 29" stroke={W} strokeWidth="4" />
+          <path d="M55 46 L65 46 L63 53 L57 53 Z" fill={INK} stroke={W} strokeWidth="2" strokeLinejoin="round" />
+          <path d="M57 53 L63 53 L67 66 L60 72 L53 66 Z" fill={INK} stroke={W} strokeWidth="2" strokeLinejoin="round" />
+        </g>
+      );
+    case "credi": // gafas cat-eye y collar de perlas
+      return (
+        <g>
+          <path d="M26 20 L34 27 Q45 25 54 29 Q53 41 43 42 Q32 42 30 31 Z" fill={W} fillOpacity="0.25" stroke={W} strokeWidth="3.5" strokeLinejoin="round" />
+          <path d="M94 20 L86 27 Q75 25 66 29 Q67 41 77 42 Q88 42 90 31 Z" fill={W} fillOpacity="0.25" stroke={W} strokeWidth="3.5" strokeLinejoin="round" />
+          <path d="M54 31 Q60 27 66 31" fill="none" stroke={W} strokeWidth="3" />
+          {PEARLS.map(([x, y], i) => (
+            <circle key={i} cx={x} cy={y} r="3.4" fill={W} />
+          ))}
+        </g>
+      );
+    case "nuez": // la moneda nuez
+      return (
+        <g>
+          <circle cx="60" cy="43" r="26" fill={W} />
+          <circle cx="60" cy="43" r="21" fill="#F26522" />
+          <path d="M51 41 Q51 57 60 61 Q69 57 69 41 Z" fill={W} />
+          <path d="M48 41 Q48 29 60 29 Q72 29 72 41 Z" fill="#8A4B22" stroke={W} strokeWidth="2" />
+          <path d="M60 29 L62 24" stroke={W} strokeWidth="3" strokeLinecap="round" />
+        </g>
+      );
+    case "balance-rojo": // $ rojo que gotea
+      return (
+        <g>
+          <path d="M60 16 L60 66" stroke={RED} strokeWidth="6" strokeLinecap="round" />
+          <path d="M75 30 C71 22 50 21 47 31 C44 41 74 41 74 53 C74 64 51 65 44 56" fill="none" stroke={RED} strokeWidth="8" strokeLinecap="round" />
+          <path d="M60 66 L60 70" stroke={RED} strokeWidth="3" strokeLinecap="round" />
+          <circle cx="60" cy="72.5" r="2.8" fill={RED} />
+          <path d="M45 57 L45 63" stroke={RED} strokeWidth="2.6" strokeLinecap="round" />
+          <circle cx="45" cy="65.5" r="2.4" fill={RED} />
+        </g>
+      );
+    case "ringo": // antifaz de mapache y diente de oro
+      return (
+        <g>
+          <path d="M24 33 Q40 20 60 30 Q80 20 96 33 Q92 48 75 46 Q66 44 60 48 Q54 44 45 46 Q28 48 24 33 Z" fill={INK} stroke={W} strokeWidth="3" strokeLinejoin="round" />
+          <circle cx="45" cy="36" r="6" fill={W} />
+          <circle cx="75" cy="36" r="6" fill={W} />
+          <circle cx="46" cy="37" r="2.8" fill={INK} />
+          <circle cx="74" cy="37" r="2.8" fill={INK} />
+          <path d="M42 56 Q60 68 78 56" fill="none" stroke={W} strokeWidth="4" strokeLinecap="round" />
+          <path d="M62 60 L69 59 L69 66 L62 66 Z" fill="#F2C850" stroke={W} strokeWidth="1.5" />
+        </g>
+      );
+    case "avellana": // aro de llaves antiguas
+      return (
+        <g>
+          <circle cx="60" cy="27" r="12" fill="none" stroke={W} strokeWidth="4" />
+          {[
+            [44, 44],
+            [60, 46],
+            [76, 44],
+          ].map(([x, y], i) => (
+            <g key={i}>
+              <path d={`M60 39 L${x} ${y - 6}`} stroke={W} strokeWidth="2" />
+              <circle cx={x} cy={y} r="5.5" fill="none" stroke={W} strokeWidth="3" />
+              <path d={`M${x} ${y + 5} L${x} ${y + 24}`} stroke={W} strokeWidth="3.5" strokeLinecap="round" />
+              <path d={`M${x} ${y + 17} L${x + 5} ${y + 17} M${x} ${y + 22} L${x + 5} ${y + 22}`} stroke={W} strokeWidth="3" />
+            </g>
+          ))}
+        </g>
+      );
+    case "rompenueces": // cascanueces partiendo una nuez
+      return (
+        <g>
+          <path d="M60 20 L40 70 M60 20 L80 70" stroke={W} strokeWidth="7" strokeLinecap="round" />
+          <circle cx="60" cy="20" r="6" fill={W} />
+          <circle cx="60" cy="47" r="8" fill="#C8742F" stroke={W} strokeWidth="2.5" />
+          <path d="M57 42 L61 47 L58 52" fill="none" stroke={INK} strokeWidth="1.8" />
+          <path d="M34 40 L40 43 M86 40 L80 43 M36 52 L42 51 M84 52 L78 51" stroke={W} strokeWidth="2.5" strokeLinecap="round" />
+        </g>
+      );
+    case "clan-bellota": // escudo con bellota
+      return (
+        <g>
+          <path d="M38 17 L82 17 L82 42 Q82 61 60 72 Q38 61 38 42 Z" fill={W} />
+          <path d="M51 41 Q51 57 60 61 Q69 57 69 41 Z" fill="#C8742F" />
+          <path d="M48 41 Q48 29 60 29 Q72 29 72 41 Z" fill="#8A4B22" />
+          <path d="M60 29 L62 24" stroke="#8A4B22" strokeWidth="3" strokeLinecap="round" />
+        </g>
+      );
+    case "escuadron-bellota": // bellota con antifaz
+      return (
+        <g>
+          <path d="M41 36 Q41 63 60 72 Q79 63 79 36 Z" fill={W} />
+          <path d="M37 37 Q37 18 60 18 Q83 18 83 37 Z" fill={W} fillOpacity="0.8" />
+          <path d="M60 18 L63 12" stroke={W} strokeWidth="3.5" strokeLinecap="round" />
+          <path d="M42 41 Q60 37 78 41 L78 52 Q60 48 42 52 Z" fill={INK} />
+          <ellipse cx="51" cy="45.5" rx="4" ry="3" fill={W} />
+          <ellipse cx="69" cy="45.5" rx="4" ry="3" fill={W} />
+          <path d="M78 43 L92 38 M78 50 L92 55" stroke={INK} strokeWidth="3" strokeLinecap="round" />
+        </g>
+      );
     default:
       return null;
   }
 }
+
+const INK = "#1E1E1E";
+const RED = "#E0283E";
+/** Perlas del collar de Credi, en arco. */
+const PEARLS: [number, number][] = Array.from({ length: 9 }, (_, i) => {
+  const t = Math.PI * (0.12 + (0.76 * i) / 8);
+  return [Math.round((60 + 27 * Math.cos(t)) * 10) / 10, Math.round((50 + 16 * Math.sin(t)) * 10) / 10];
+});
