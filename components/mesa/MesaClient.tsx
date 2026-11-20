@@ -1,17 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { LookEditor } from "@/components/mesa/LookEditor";
 import { ContactFields, contactFrom } from "@/components/mesa/ContactFields";
+import { freeTables, TablePicker } from "@/components/mesa/TablePicker";
 import { TeamPreview } from "@/components/mesa/TeamPreview";
 import { ShareButton } from "@/components/ranking/ShareButton";
 import { Flag } from "@/components/teams/Art";
 import { formatEventDate, formatShortDateTime } from "@/lib/event-format";
 import { DEFAULT_LOOK } from "@/lib/squirrel-look";
 import type { MesaState, MyContact, PublicTeam } from "@/lib/team-types";
-import { colorHex, TABLES, tableInfo } from "@/lib/teams-catalog";
+import { colorHex, tableInfo } from "@/lib/teams-catalog";
 
 const input =
   "w-full rounded-2xl border border-line bg-white px-4 py-2.5 text-sm font-medium text-ink";
@@ -66,7 +66,7 @@ export function MesaClient({ initial }: { initial: MesaState }) {
   }
 
   const { event, team, invite } = state;
-  const free = Math.max(0, event.tableCount - event.tablesTaken);
+  const free = freeTables(event);
 
   return (
     <div className="space-y-3">
@@ -101,7 +101,7 @@ export function MesaClient({ initial }: { initial: MesaState }) {
       )}
 
       {team ? (
-        <MyTeam team={team} me={state.me} open={event.reservationsOpen} busy={busy} act={act} />
+        <MyTeam team={team} me={state.me} event={event} busy={busy} act={act} />
       ) : invite ? (
         <InviteView state={state} busy={busy} act={act} />
       ) : !event.reservationsOpen ? (
@@ -112,17 +112,14 @@ export function MesaClient({ initial }: { initial: MesaState }) {
         </Box>
       ) : free === 0 ? (
         <Box tone="warm">
-          <p className="font-display text-lg font-extrabold text-primary-dark">Mesas agotadas 🐿️</p>
+          <p className="font-display text-lg font-extrabold text-primary-dark">Mesas llenas 🐿️</p>
           <p className="text-sm text-ink">
-            Ya se reservaron las {event.tableCount} mesas. Si un capitán te pasa su código, todavía
-            puedes unirte a su team si le quedan puestos.
+            Ya no quedan puestos en ninguna de las {event.tableCount} mesas. Si alguien se sale, el puesto
+            vuelve a aparecer aquí.
           </p>
-          <Link href="/mesa/unirme" className={`${primaryBtn} block text-center`}>
-            Unirme con un código
-          </Link>
         </Box>
       ) : (
-        <CreateTeam me={state.me} event={event} busy={busy} act={act} />
+        <JoinTable me={state.me} event={event} busy={busy} act={act} />
       )}
     </div>
   );
@@ -130,7 +127,7 @@ export function MesaClient({ initial }: { initial: MesaState }) {
 
 type Act = (action: string, body?: unknown, okText?: string) => Promise<boolean>;
 
-function CreateTeam({
+function JoinTable({
   me,
   event,
   busy,
@@ -141,19 +138,20 @@ function CreateTeam({
   busy: boolean;
   act: Act;
 }) {
-  const tables = TABLES.filter((t) => t.number <= event.tableCount);
-  const taken = new Set(event.takenTables);
-  const free = tables.filter((t) => !taken.has(t.number)).length;
   const [contact, setContact] = useState(() => contactFrom(me));
   const [table, setTable] = useState<number | null>(null);
-  const [motto, setMotto] = useState("");
   const [squirrel, setSquirrel] = useState(DEFAULT_LOOK);
   const chosen = table ? tableInfo(table) : undefined;
+  const empty = table !== null && !event.tables.some((t) => t.number === table && t.seatsUsed > 0);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!table) return;
-    await act("create", { ...contact, tableNumber: table, motto, squirrel }, "¡Mesa reservada! Ahora invita a tu team.");
+    await act(
+      "seat",
+      { ...contact, tableNumber: table, squirrel },
+      empty ? `¡Estás en la mesa ${table}! Llegaste primero: eres el capitán.` : `¡Ya estás en la mesa ${table}!`,
+    );
   }
 
   return (
@@ -162,38 +160,11 @@ function CreateTeam({
         <div>
           <p className="font-display text-lg font-extrabold text-primary-dark">Escoge tu mesa</p>
           <p className="text-xs text-muted">
-            Quedan <strong className="text-ink">{free} de {tables.length}</strong> mesas. Cada mesa ya tiene su
-            nombre, bandera y color. Quien la reserve primero se queda con ella y es el capitán.
+            Únete a la mesa que quieras, aunque no conozcas a nadie: así se arman los Teams de Ardillas. Cada
+            mesa es de {event.seatsPerTable} personas y puedes cambiarte hasta que cierren las reservas.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Mesas">
-          {tables.map((t) => {
-            const isTaken = taken.has(t.number);
-            const on = table === t.number;
-            return (
-              <button
-                key={t.number}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                disabled={isTaken}
-                onClick={() => setTable(t.number)}
-                className={`flex flex-col items-center gap-1 rounded-2xl border-2 p-2 text-center ${
-                  isTaken
-                    ? "cursor-not-allowed border-line bg-warm opacity-50"
-                    : on
-                      ? "border-primary bg-[#F2C850]"
-                      : "border-line bg-white hover:bg-warm"
-                }`}
-              >
-                <Flag kind={t.flag} color={colorHex(t.color)} size={64} />
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted">Mesa {t.number}</span>
-                <span className="text-sm font-extrabold leading-tight text-ink">{t.name}</span>
-                {isTaken && <span className="text-[11px] font-bold text-danger">Reservada</span>}
-              </button>
-            );
-          })}
-        </div>
+        <TablePicker event={event} value={table} onChange={setTable} />
       </Box>
       {chosen && (
         <>
@@ -202,25 +173,14 @@ function CreateTeam({
               <p className="font-display text-base font-extrabold text-primary-dark">Tus datos</p>
               <p className="text-xs text-muted">Los necesitamos para confirmar tu puesto en el evento.</p>
             </div>
-            <ContactFields email={me.email} askConsent={!me.dataConsent} value={contact} onChange={setContact} idPrefix="create" />
-          </Box>
-          <Box>
-            <label htmlFor="team-motto" className={label}>Lema o grito de guerra de {chosen.name} (opcional)</label>
-            <input
-              id="team-motto"
-              className={input}
-              maxLength={60}
-              value={motto}
-              onChange={(e) => setMotto(e.target.value)}
-              placeholder="Ej. Ni un peso sin conciliar"
-            />
+            <ContactFields email={me.email} askConsent={!me.dataConsent} value={contact} onChange={setContact} idPrefix="seat" />
           </Box>
           <Box>
             <p className={label}>Arma tu ardilla</p>
             <LookEditor value={squirrel} color={colorHex(chosen.color)} onChange={setSquirrel} />
           </Box>
           <button type="submit" disabled={busy} className={primaryBtn}>
-            {busy ? "Reservando…" : `Reservar la mesa ${chosen.number}`}
+            {busy ? "Guardando…" : `Unirme a la mesa ${chosen.number}`}
           </button>
         </>
       )}
@@ -273,16 +233,17 @@ function InviteView({ state, busy, act }: { state: MesaState; busy: boolean; act
 function MyTeam({
   team,
   me: contactMe,
-  open,
+  event,
   busy,
   act,
 }: {
   team: PublicTeam;
   me: MyContact;
-  open: boolean;
+  event: MesaState["event"];
   busy: boolean;
   act: Act;
 }) {
+  const open = event.reservationsOpen;
   const me = team.members.find((m) => m.isMe);
   const seatsLeft = team.seatsTotal - team.seatsUsed;
   const [link, setLink] = useState<string | null>(null);
@@ -294,7 +255,7 @@ function MyTeam({
   async function shareLink() {
     const url = joinUrl();
     setLink(url);
-    const text = `¡Únete a mi Team de Ardillas "${team.name}" (mesa ${team.tableNumber}) para el lanzamiento de 1110! ${url}`;
+    const text = `¡Únete a mi mesa "${team.name}" (mesa ${team.tableNumber}) en el lanzamiento de 1110! ${url}`;
     try {
       if (navigator.share) {
         await navigator.share({ text });
@@ -320,19 +281,16 @@ function MyTeam({
       <Box tone={team.confirmed ? "sage" : "warm"}>
         <p className="text-sm font-bold text-primary-dark">
           {team.confirmed
-            ? "✅ ¡Mesa confirmada! Ya son todos."
-            : `Faltan ${team.seatsTotal - team.members.length} para confirmar la mesa (se confirma con ${team.seatsTotal} integrantes que aceptaron).`}
+            ? "✅ ¡Mesa completa! Ya están los " + team.seatsTotal + "."
+            : `Quedan ${seatsLeft} ${seatsLeft === 1 ? "puesto" : "puestos"} en tu mesa. Se irán llenando con quienes la escojan.`}
         </p>
         {team.joinCode && seatsLeft > 0 && open && (
           <>
             <p className="text-xs text-ink">
-              Comparte este código o enlace con tus colegas:
-              <span className="ml-1 rounded-lg bg-white px-2 py-0.5 font-display text-base font-extrabold tracking-widest text-primary-dark">
-                {team.joinCode}
-              </span>
+              ¿Vienes con amigos? Compárteles este enlace y quedan en tu mesa mientras haya puesto.
             </p>
             <button type="button" onClick={shareLink} className={primaryBtn}>
-              Compartir enlace del team
+              Compartir enlace de mi mesa
             </button>
             {link && copied && (
               <p className="break-all text-[11px] font-semibold text-muted">Copiado: {link}</p>
@@ -343,9 +301,9 @@ function MyTeam({
 
       <ShareButton src="/api/teams-card" fileName={`team-${team.joinCode ?? "1110"}.png`} label="Ver y compartir la tarjeta del team" />
 
-      {team.isCaptain && open && (
-        <CaptainTools team={team} seatsLeft={seatsLeft} busy={busy} act={act} />
-      )}
+      {team.isCaptain && open && <CaptainTools team={team} busy={busy} act={act} />}
+
+      {open && <MoveTable team={team} event={event} busy={busy} act={act} />}
 
       {me && open && (
         <MySquirrel current={me.squirrel} color={colorHex(team.color)} busy={busy} act={act} />
@@ -357,7 +315,7 @@ function MyTeam({
         <Box>
           {!leaving ? (
             <button type="button" onClick={() => setLeaving(true)} className={secondaryBtn}>
-              Salir del team
+              Salir de la mesa
             </button>
           ) : (
             <div className="space-y-2">
@@ -365,14 +323,14 @@ function MyTeam({
                 {team.isCaptain
                   ? team.members.length > 1
                     ? "Si sales, la capitanía pasa al integrante más antiguo."
-                    : "Eres el único integrante: si sales, la mesa se libera para otro team."
-                  : "¿Seguro que quieres salir del team?"}
+                    : "Eres el único en la mesa: si sales, queda vacía para otros."
+                  : "¿Seguro que quieres salir de la mesa? Tu puesto queda libre."}
               </p>
               <button
                 type="button"
                 disabled={busy}
                 onClick={async () => {
-                  if (await act("leave", {}, "Saliste del team.")) setLeaving(false);
+                  if (await act("leave", {}, "Saliste de la mesa.")) setLeaving(false);
                 }}
                 className="w-full rounded-2xl bg-danger px-4 py-2.5 font-display text-xs font-extrabold uppercase tracking-wide text-white"
               >
@@ -387,119 +345,120 @@ function MyTeam({
       )}
       {!open && (
         <p className="text-center text-xs text-muted">
-          Las reservas cerraron: el team ya no se puede modificar desde aquí.
+          Las reservas cerraron: ya no puedes cambiarte de mesa desde aquí.
         </p>
       )}
     </div>
   );
 }
 
-function CaptainTools({
-  team,
-  seatsLeft,
-  busy,
-  act,
-}: {
-  team: PublicTeam;
-  seatsLeft: number;
-  busy: boolean;
-  act: Act;
-}) {
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
+/** El capitán (quien llegó primero a la mesa) solo edita el lema. */
+function CaptainTools({ team, busy, act }: { team: PublicTeam; busy: boolean; act: Act }) {
   const [editing, setEditing] = useState(false);
   const [tMotto, setTMotto] = useState(team.motto);
 
   return (
-    <>
-      {seatsLeft > 0 && (
-        <Box>
-          <p className="font-display text-base font-extrabold text-primary-dark">Invitar por correo</p>
+    <Box>
+      {!editing ? (
+        <>
           <p className="text-xs text-muted">
-            El puesto queda apartado hasta que tu colega entre al sitio con ese correo y acepte.
+            Eres el capitán porque llegaste primero. Puedes ponerle un lema o grito de guerra a la mesa.
           </p>
-          <form
-            className="space-y-2"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              if (await act("invite", { email, fullName: name }, "Invitación enviada. Avísale que entre con ese correo.")) {
-                setEmail("");
-                setName("");
+          <button type="button" onClick={() => setEditing(true)} className={secondaryBtn}>
+            {team.motto ? "Editar el lema" : "Ponerle un lema a la mesa"}
+          </button>
+        </>
+      ) : (
+        <form
+          className="space-y-2"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (await act("update", { motto: tMotto }, "Lema actualizado.")) setEditing(false);
+          }}
+        >
+          <input
+            className={input}
+            maxLength={60}
+            value={tMotto}
+            onChange={(e) => setTMotto(e.target.value)}
+            placeholder="Ej. Ni un peso sin conciliar"
+          />
+          <button type="submit" disabled={busy} className={primaryBtn}>
+            Guardar lema
+          </button>
+          <button type="button" onClick={() => setEditing(false)} className={secondaryBtn}>
+            Cancelar
+          </button>
+        </form>
+      )}
+    </Box>
+  );
+}
+
+/** Cambiarse a otra mesa con puesto libre (conserva sus datos y su ardilla). */
+function MoveTable({
+  team,
+  event,
+  busy,
+  act,
+}: {
+  team: PublicTeam;
+  event: MesaState["event"];
+  busy: boolean;
+  act: Act;
+}) {
+  const [open, setOpen] = useState(false);
+  const [table, setTable] = useState<number | null>(null);
+  const chosen = table ? tableInfo(table) : undefined;
+  if (freeTables(event, team.tableNumber) === 0) return null;
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className={secondaryBtn}>
+        🔄 Cambiarme de mesa
+      </button>
+    );
+  }
+  return (
+    <Box>
+      <p className="font-display text-base font-extrabold text-primary-dark">Cambiarme de mesa</p>
+      <TablePicker event={event} value={table} onChange={setTable} current={team.tableNumber} />
+      {chosen && (
+        <>
+          <p className="text-xs text-ink">
+            Dejas tu puesto en {team.name}
+            {team.isCaptain
+              ? team.members.length > 1
+                ? " y la capitanía pasa al integrante más antiguo"
+                : " y esa mesa queda vacía"
+              : ""}
+            .
+          </p>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              if (await act("move", { tableNumber: chosen.number }, `¡Te cambiaste a la mesa ${chosen.number}!`)) {
+                setOpen(false);
+                setTable(null);
               }
             }}
+            className={primaryBtn}
           >
-            <input className={input} required value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre completo" maxLength={120} />
-            <input className={input} required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Correo" />
-            <button type="submit" disabled={busy} className={secondaryBtn}>
-              Invitar
-            </button>
-          </form>
-        </Box>
-      )}
-
-      {(team.invites.length > 0 || team.members.length > 1) && (
-        <Box>
-          <p className="font-display text-base font-extrabold text-primary-dark">Integrantes e invitaciones</p>
-          <ul className="divide-y divide-line">
-            {team.members
-              .filter((m) => !m.isMe)
-              .map((m) => (
-                <li key={m.participantId} className="flex items-center justify-between gap-2 py-2 text-sm">
-                  <span className="font-semibold text-ink">{m.name}</span>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => act("remove", { id: m.participantId }, `${m.name} salió del team.`)}
-                    className="text-xs font-bold text-danger underline"
-                  >
-                    Sacar
-                  </button>
-                </li>
-              ))}
-            {team.invites.map((i) => (
-              <li key={i.id} className="flex items-center justify-between gap-2 py-2 text-sm">
-                <span>
-                  <span className="font-semibold text-ink">⏳ {i.name}</span>
-                  <span className="block text-xs text-muted">{i.email}</span>
-                </span>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => act("cancel-invite", { id: i.id }, "Invitación cancelada.")}
-                  className="text-xs font-bold text-danger underline"
-                >
-                  Cancelar
-                </button>
-              </li>
-            ))}
-          </ul>
-        </Box>
-      )}
-
-      <Box>
-        {!editing ? (
-          <button type="button" onClick={() => setEditing(true)} className={secondaryBtn}>
-            Editar el lema
+            {busy ? "Cambiando…" : `Cambiarme a la mesa ${chosen.number}`}
           </button>
-        ) : (
-          <form
-            className="space-y-2"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              if (await act("update", { motto: tMotto }, "Lema actualizado.")) setEditing(false);
-            }}
-          >
-            <input className={input} maxLength={60} value={tMotto} onChange={(e) => setTMotto(e.target.value)} placeholder="Lema (opcional)" />
-            <button type="submit" disabled={busy} className={primaryBtn}>
-              Guardar cambios
-            </button>
-            <button type="button" onClick={() => setEditing(false)} className={secondaryBtn}>
-              Cancelar
-            </button>
-          </form>
-        )}
-      </Box>
-    </>
+        </>
+      )}
+      <button
+        type="button"
+        onClick={() => {
+          setOpen(false);
+          setTable(null);
+        }}
+        className={secondaryBtn}
+      >
+        Cancelar
+      </button>
+    </Box>
   );
 }
 

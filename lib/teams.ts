@@ -9,6 +9,7 @@ import type {
   MesaState,
   PendingInvite,
   PublicEvent,
+  PublicTableSeats,
   PublicTeam,
 } from "@/lib/team-types";
 
@@ -83,8 +84,10 @@ export function isReservationOpen(ev: EventRow, now = serverNow()): boolean {
 export async function getPublicEvent(): Promise<PublicEvent> {
   const [ev, taken] = await Promise.all([
     getEventRow(),
-    db().from("teams").select("table_number").eq("staff", false),
+    db().from("teams").select("id, table_number").eq("staff", false),
   ]);
+  if (taken.error) throw new Error(taken.error.message);
+  const teams = (taken.data ?? []) as { id: string; table_number: number }[];
   const now = serverNow();
   return {
     title: ev.title,
@@ -97,10 +100,42 @@ export async function getPublicEvent(): Promise<PublicEvent> {
     reservationsOpen: isReservationOpen(ev, now),
     tableCount: ev.table_count,
     seatsPerTable: ev.seats_per_table,
-    tablesTaken: (taken.data ?? []).length,
-    takenTables: (taken.data ?? []).map((t) => Number(t.table_number)).sort((a, b) => a - b),
+    tablesTaken: teams.length,
+    takenTables: teams.map((t) => Number(t.table_number)).sort((a, b) => a - b),
+    tables: await tableSeats(teams),
     serverNow: now.toISOString(),
   };
+}
+
+/** Cupos usados y primeros nombres de cada mesa pública con gente. */
+async function tableSeats(teams: { id: string; table_number: number }[]): Promise<PublicTableSeats[]> {
+  if (teams.length === 0) return [];
+  const [members, invites] = await Promise.all([
+    db()
+      .from("team_members")
+      .select("team_id, participant_id, joined_at")
+      .in("team_id", teams.map((t) => t.id))
+      .order("joined_at"),
+    db().from("team_invites").select("team_id").in("team_id", teams.map((t) => t.id)),
+  ]);
+  if (members.error) throw new Error(members.error.message);
+  const mRows = (members.data ?? []) as { team_id: string; participant_id: string }[];
+  const people = await namesOf(mRows.map((m) => m.participant_id));
+  return teams
+    .map((t) => {
+      const ms = mRows.filter((m) => m.team_id === t.id);
+      const pending = (invites.data ?? []).filter((i: { team_id: string }) => i.team_id === t.id).length;
+      return {
+        number: Number(t.table_number),
+        seatsUsed: ms.length + pending,
+        names: ms.map((m) => firstName(people.get(m.participant_id)?.full_name ?? "")).filter(Boolean),
+      };
+    })
+    .sort((a, b) => a.number - b.number);
+}
+
+function firstName(full: string): string {
+  return full.trim().split(/\s+/)[0] ?? "";
 }
 
 async function namesOf(ids: string[]): Promise<Map<string, { full_name: string; email: string }>> {
@@ -244,29 +279,19 @@ export async function saveContact(
   await recordConsent(pid);
 }
 
-export async function createTeam(
-  pid: string,
-  input: { tableNumber: number; motto: string; squirrel: string },
-): Promise<void> {
-  const table = tableInfo(input.tableNumber);
+/**
+ * Entra a la mesa escogida (o se cambia a ella). Si está vacía, crea el team con el nombre,
+ * bandera y color de la mesa y queda como capitán. `squirrel` null = conserva su ardilla.
+ */
+export async function takeSeat(pid: string, tableNumber: number, squirrel: string | null): Promise<void> {
+  const table = tableInfo(tableNumber);
   if (!table) throw teamError("table_invalid");
-  const { error } = await db().rpc("team_create_at", {
+  const { error } = await db().rpc("team_take_seat", {
     p_participant: pid,
     p_table: table.number,
     p_name: table.name,
     p_flag: table.flag,
     p_color: table.color,
-    p_motto: input.motto,
-    p_squirrel: input.squirrel,
-    p_now: sqlNow(),
-  });
-  fail(error);
-}
-
-export async function joinTeam(pid: string, code: string, squirrel: string): Promise<void> {
-  const { error } = await db().rpc("team_join", {
-    p_participant: pid,
-    p_code: code,
     p_squirrel: squirrel,
     p_now: sqlNow(),
   });
@@ -277,16 +302,6 @@ export async function acceptInvite(pid: string, squirrel: string): Promise<void>
   const { error } = await db().rpc("team_accept_invite", {
     p_participant: pid,
     p_squirrel: squirrel,
-    p_now: sqlNow(),
-  });
-  fail(error);
-}
-
-export async function inviteToTeam(pid: string, email: string, fullName: string): Promise<void> {
-  const { error } = await db().rpc("team_invite", {
-    p_captain: pid,
-    p_email: email,
-    p_full_name: fullName,
     p_now: sqlNow(),
   });
   fail(error);
@@ -313,33 +328,6 @@ export async function declineInvite(pid: string): Promise<void> {
   if (!me) throw teamError("no_invite");
   const { error } = await db().from("team_invites").delete().eq("email", me.email);
   fail(error);
-}
-
-export async function cancelInvite(pid: string, inviteId: string): Promise<void> {
-  await assertOpen();
-  const team = await captainTeam(pid);
-  const { data, error } = await db()
-    .from("team_invites")
-    .delete()
-    .eq("id", inviteId)
-    .eq("team_id", team.id)
-    .select("id");
-  fail(error);
-  if (!data?.length) throw teamError("invite_not_found");
-}
-
-export async function removeMember(pid: string, memberId: string): Promise<void> {
-  await assertOpen();
-  const team = await captainTeam(pid);
-  if (memberId === pid) throw new TeamError("invalid", "Para salirte usa “Salir del team”.", 400);
-  const { data, error } = await db()
-    .from("team_members")
-    .delete()
-    .eq("team_id", team.id)
-    .eq("participant_id", memberId)
-    .select("id");
-  fail(error);
-  if (!data?.length) throw teamError("not_member");
 }
 
 /** El capitán solo cambia el lema: nombre, bandera y color vienen de la mesa. */

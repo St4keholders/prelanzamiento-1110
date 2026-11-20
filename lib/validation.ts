@@ -155,27 +155,20 @@ const contactFields = {
 };
 export const contactSchema = z.object(contactFields);
 
-export const teamCreateSchema = z.object({
-  tableNumber: z.coerce
-    .number({ message: "Escoge una mesa." })
-    .int({ message: "Escoge una mesa." })
-    .min(1, { message: "Escoge una mesa." })
-    .max(TABLES.length, { message: "Escoge una mesa." }),
-  motto: teamFields.motto,
+const tableNumberSchema = z.coerce
+  .number({ message: "Escoge una mesa." })
+  .int({ message: "Escoge una mesa." })
+  .min(1, { message: "Escoge una mesa." })
+  .max(TABLES.length, { message: "Escoge una mesa." });
+
+/** Entrar a una mesa (primera vez o con el enlace de un amigo): datos de contacto + ardilla. */
+export const teamSeatSchema = z.object({
+  tableNumber: tableNumberSchema,
   ...contactFields,
   squirrel: squirrelSchema,
 });
+/** Cambiarse de mesa: conserva sus datos y su ardilla. */
+export const teamMoveSchema = z.object({ tableNumber: tableNumberSchema });
 export const teamUpdateSchema = z.object({ motto: teamFields.motto });
-export const teamJoinSchema = z.object({
-  code: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .regex(/^[A-Z0-9]{4,10}$/, { message: "Escribe el código que te pasó el capitán." }),
-  ...contactFields,
-  squirrel: squirrelSchema,
-});
 export const teamSquirrelSchema = z.object({ squirrel: squirrelSchema });
 export const teamAcceptSchema = z.object({ ...contactFields, squirrel: squirrelSchema });
-export const teamInviteSchema = z.object({ email: emailSchema, fullName: fullNameSchema });
-export const teamIdSchema = z.object({ id: z.uuid({ message: "Dato no válido." }) });

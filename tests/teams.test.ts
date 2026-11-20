@@ -6,7 +6,7 @@ import {
   composeLook, isValidLook, lookName, optionsFor, parseLook, randomLook, switchStyle,
 } from "@/lib/squirrel-look";
 import { COLOR_KEYS, FLAG_KEYS, FLAGS, TABLES, TEAM_COLORS, colorHex, tableInfo } from "@/lib/teams-catalog";
-import { contactSchema, teamAcceptSchema, teamCreateSchema, teamInviteSchema, teamJoinSchema, teamUpdateSchema } from "@/lib/validation";
+import { contactSchema, teamAcceptSchema, teamMoveSchema, teamSeatSchema, teamUpdateSchema } from "@/lib/validation";
 
 describe("ranking utils", () => {
   it("longest streak of won days", () => {
@@ -43,10 +43,9 @@ describe("contact data", () => {
   it("is required to reserve, join or accept", () => {
     const sq = "ardilla|blusa|lazo|lentes|perlas|cafe";
     const team = { tableNumber: 3, squirrel: sq };
-    expect(teamCreateSchema.safeParse(team).success).toBe(false);
-    expect(teamCreateSchema.safeParse({ ...team, ...CONTACT, profession: " " }).success).toBe(false);
-    expect(teamCreateSchema.safeParse({ ...team, ...CONTACT, phone: "12" }).success).toBe(false);
-    expect(teamJoinSchema.safeParse({ code: "K7Q2XM", squirrel: sq }).success).toBe(false);
+    expect(teamSeatSchema.safeParse(team).success).toBe(false);
+    expect(teamSeatSchema.safeParse({ ...team, ...CONTACT, profession: " " }).success).toBe(false);
+    expect(teamSeatSchema.safeParse({ ...team, ...CONTACT, phone: "12" }).success).toBe(false);
     expect(teamAcceptSchema.safeParse({ squirrel: sq }).success).toBe(false);
     expect(teamAcceptSchema.parse({ ...CONTACT, squirrel: sq }).profession).toBe("Contadora pública");
     expect(contactSchema.safeParse({ ...CONTACT, profession: "x".repeat(81) }).success).toBe(false);
@@ -62,11 +61,10 @@ describe("contact data", () => {
 });
 
 describe("team validation", () => {
-  it("creates a team on a fixed table", () => {
-    const r = teamCreateSchema.parse({
+  it("takes a seat on a table", () => {
+    const r = teamSeatSchema.parse({
       ...CONTACT,
       tableNumber: "4",
-      motto: "  Ni un peso sin conciliar ",
       squirrel: "ardillo|chaleco|vaquero|lentes|bigote|calculadora",
     });
     expect(r).toEqual({
@@ -75,17 +73,18 @@ describe("team validation", () => {
       profession: "Contadora pública",
       dataConsent: true,
       tableNumber: 4,
-      motto: "Ni un peso sin conciliar",
       squirrel: "ardillo|chaleco|vaquero|lentes|bigote|calculadora",
     });
   });
   it("rejects unknown tables and bad looks", () => {
     const base = { ...CONTACT, tableNumber: 1, squirrel: "ardilla|vestido|ninguno|ninguna|ninguna|ninguno" };
-    expect(teamCreateSchema.safeParse({ ...base, tableNumber: 0 }).success).toBe(false);
-    expect(teamCreateSchema.safeParse({ ...base, tableNumber: 11 }).success).toBe(false);
-    expect(teamCreateSchema.safeParse({ ...base, tableNumber: 2.5 }).success).toBe(false);
-    expect(teamCreateSchema.safeParse({ ...base, squirrel: "zorro" }).success).toBe(false);
-    expect(teamCreateSchema.safeParse({ ...base, motto: "x".repeat(61) }).success).toBe(false);
+    expect(teamSeatSchema.safeParse({ ...base, tableNumber: 0 }).success).toBe(false);
+    expect(teamSeatSchema.safeParse({ ...base, tableNumber: 11 }).success).toBe(false);
+    expect(teamSeatSchema.safeParse({ ...base, tableNumber: 2.5 }).success).toBe(false);
+    expect(teamSeatSchema.safeParse({ ...base, squirrel: "zorro" }).success).toBe(false);
+    expect(teamMoveSchema.parse({ tableNumber: "7" })).toEqual({ tableNumber: 7 });
+    expect(teamMoveSchema.safeParse({ tableNumber: 11 }).success).toBe(false);
+    expect(teamUpdateSchema.safeParse({ motto: "x".repeat(61) }).success).toBe(false);
     expect(teamUpdateSchema.parse({ motto: " Hola " })).toEqual({ motto: "Hola" });
   });
   it("has 10 tables with unique names and valid flags and colors", () => {
@@ -101,19 +100,13 @@ describe("team validation", () => {
     expect(tableInfo(9)?.name).toBe("El Clan de la Bellota");
     expect(tableInfo(11)).toBeUndefined();
   });
-  it("normalizes join codes and invite emails", () => {
-    expect(teamJoinSchema.parse({ ...CONTACT, code: " k7q2xm ", squirrel: "ardilla|blusa|lazo|lentes|perlas|cafe" }).code).toBe("K7Q2XM");
-    expect(teamJoinSchema.safeParse({ ...CONTACT, code: "K7-Q2", squirrel: "ardilla|blusa|lazo|lentes|perlas|cafe" }).success).toBe(false);
-    expect(teamInviteSchema.parse({ email: " Ana@Correo.COM ", fullName: "Ana Ríos" }).email).toBe(
-      "ana@correo.com",
-    );
-  });
 });
 
 describe("team errors", () => {
   it("maps database exceptions to friendly messages", () => {
     expect(teamErrorFrom("ERROR: no_tables").status).toBe(409);
-    expect(teamErrorFrom("P0001: team_full").message).toMatch(/puestos libres/);
+    expect(teamErrorFrom("P0001: team_full").message).toMatch(/llena/);
+    expect(teamErrorFrom("P0001: already_here").code).toBe("already_here");
     expect(teamErrorFrom("algo raro").code).toBe("internal");
   });
 });

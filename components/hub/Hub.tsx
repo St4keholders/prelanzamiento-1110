@@ -13,9 +13,10 @@ interface HubProps {
   hasInvite: boolean;
 }
 
-/** Home after the game: Ranking · Reservar mesa · Unirme a una mesa (or "Mi team"). */
+/** Home after the game: Ranking · Escoger mi mesa · Unirme con enlace (or "Mi mesa"). */
 export function Hub({ event, fullName, myTeam, hasInvite }: HubProps) {
-  const free = Math.max(0, event.tableCount - event.tablesTaken);
+  const used = event.tables.filter((t) => t.number <= event.tableCount).reduce((a, t) => a + t.seatsUsed, 0);
+  const free = Math.max(0, event.tableCount * event.seatsPerTable - used);
   const closed = !event.reservationsOpen;
 
   return (
@@ -73,7 +74,7 @@ export function Hub({ event, fullName, myTeam, hasInvite }: HubProps) {
           <Flag kind={myTeam.flag} color={colorHex(myTeam.color)} size={64} />
           <span className="flex-1">
             <span className="block text-[11px] font-extrabold uppercase tracking-wider text-muted">
-              Mi team · Mesa {myTeam.tableNumber}
+              Mi mesa · Mesa {myTeam.tableNumber}
             </span>
             <span className="block font-display text-base font-extrabold text-primary-dark">
               {myTeam.name}
@@ -100,13 +101,13 @@ export function Hub({ event, fullName, myTeam, hasInvite }: HubProps) {
             }`}
           >
             <span>
-              <span className="block font-display text-base font-extrabold">🪑 Reservar mesa</span>
+              <span className="block font-display text-base font-extrabold">🪑 Escoger mi mesa</span>
               <span className="text-xs font-semibold opacity-90">
                 {closed
                   ? "Las reservas están cerradas"
                   : free === 0
-                    ? "Mesas agotadas"
-                    : `Crea tu Team de Ardillas · quedan ${free} de ${event.tableCount} mesas`}
+                    ? "Mesas llenas"
+                    : `Únete a cualquier mesa, aunque no conozcas a nadie · quedan ${free} puestos`}
               </span>
             </span>
             <span className="text-lg">→</span>
@@ -117,9 +118,9 @@ export function Hub({ event, fullName, myTeam, hasInvite }: HubProps) {
           >
             <span>
               <span className="block font-display text-base font-extrabold text-primary-dark">
-                🔑 Unirme a una mesa
+                🔑 Tengo un enlace de un amigo
               </span>
-              <span className="text-xs text-muted">Con el código o enlace que te pasó el capitán</span>
+              <span className="text-xs text-muted">Para quedar en la misma mesa que tus amigos</span>
             </span>
             <span className="text-lg text-primary">→</span>
           </Link>

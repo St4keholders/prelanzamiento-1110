@@ -15,7 +15,16 @@ export interface PublicEvent {
   tablesTaken: number;
   /** Números de las mesas públicas ya apartadas. */
   takenTables: number[];
+  /** Ocupación de cada mesa pública que ya tiene gente. */
+  tables: PublicTableSeats[];
   serverNow: string;
+}
+
+export interface PublicTableSeats {
+  number: number;
+  seatsUsed: number;
+  /** Primer nombre de quienes ya están, por orden de llegada. */
+  names: string[];
 }
 
 export interface PublicMember {

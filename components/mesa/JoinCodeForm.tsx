@@ -15,7 +15,7 @@ export function JoinCodeForm() {
         e.preventDefault();
         const code = value.trim().split("/").filter(Boolean).pop()?.toUpperCase() ?? "";
         if (!/^[A-Z0-9]{4,10}$/.test(code)) {
-          setError("Escribe el código de 6 caracteres o pega el enlace que te pasó el capitán.");
+          setError("Escribe el código de 6 caracteres o pega el enlace que te pasó tu amigo.");
           return;
         }
         router.push(`/m/${code}`);

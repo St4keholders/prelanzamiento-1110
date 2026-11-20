@@ -17,10 +17,13 @@ async function Content({ params }: { params: Promise<{ code: string }> }) {
   if (!team) {
     return (
       <Card tone="warm" className="space-y-2">
-        <p className="font-display text-lg font-extrabold text-primary-dark">No encontramos ese team</p>
-        <p className="text-sm text-ink">Revisa el código con tu capitán.</p>
-        <Link href="/mesa/unirme" className="text-sm font-bold text-primary underline">
-          Probar con otro código
+        <p className="font-display text-lg font-extrabold text-primary-dark">Esa mesa ya no existe</p>
+        <p className="text-sm text-ink">
+          Puede que el enlace esté mal escrito o que la mesa haya quedado vacía. Igual puedes escoger la mesa que
+          quieras.
+        </p>
+        <Link href="/mesa" className="text-sm font-bold text-primary underline">
+          Ver las mesas
         </Link>
       </Card>
     );
@@ -32,26 +35,16 @@ async function Content({ params }: { params: Promise<{ code: string }> }) {
   if (!pid) {
     action = (
       <Card tone="warm">
-        <LoginGate intro={`Entra con tu correo para unirte a ${team.name}.`} />
+        <LoginGate intro={`Entra con tu correo para unirte a la mesa ${team.tableNumber}: ${team.name}.`} />
       </Card>
     );
   } else {
     const mesa = await getMesaState(pid).catch(() => null);
-    const invitedHere = mesa?.invite && mesa.invite.tableNumber === team.tableNumber;
     if (mesa?.team?.id === team.id) {
       action = (
         <Card tone="sage">
-          <p className="text-sm font-bold text-primary-dark">Ya eres parte de este team.</p>
-          <Link href="/mesa" className="text-sm font-bold text-primary underline">Ver mi team</Link>
-        </Card>
-      );
-    } else if (mesa?.team) {
-      action = (
-        <Card tone="warm">
-          <p className="text-sm font-semibold text-ink">
-            Ya perteneces a otro team ({mesa.team.name}). Para unirte a este, primero sal del tuyo.
-          </p>
-          <Link href="/mesa" className="text-sm font-bold text-primary underline">Ver mi team</Link>
+          <p className="text-sm font-bold text-primary-dark">Ya estás en esta mesa.</p>
+          <Link href="/mesa" className="text-sm font-bold text-primary underline">Ver mi mesa</Link>
         </Card>
       );
     } else if (!event.reservationsOpen) {
@@ -60,14 +53,24 @@ async function Content({ params }: { params: Promise<{ code: string }> }) {
           <p className="text-sm font-semibold text-ink">Las reservas de mesa están cerradas.</p>
         </Card>
       );
-    } else if (seatsLeft <= 0 && !invitedHere) {
+    } else if (seatsLeft <= 0 || team.staff) {
       action = (
         <Card tone="warm">
-          <p className="text-sm font-semibold text-ink">Este team ya no tiene puestos libres.</p>
+          <p className="text-sm font-semibold text-ink">Esta mesa ya está llena.</p>
+          <Link href="/mesa" className="text-sm font-bold text-primary underline">Ver otras mesas</Link>
+        </Card>
+      );
+    } else if (mesa?.team) {
+      action = (
+        <Card tone="warm" className="space-y-2">
+          <p className="text-sm font-semibold text-ink">
+            Ahora estás en la mesa {mesa.team.tableNumber} ({mesa.team.name}). ¿Te cambias a esta?
+          </p>
+          <JoinClient tableNumber={team.tableNumber} color={colorHex(team.color)} me={mesa.me} moving />
         </Card>
       );
     } else if (mesa) {
-      action = <JoinClient code={code} color={colorHex(team.color)} me={mesa.me} />;
+      action = <JoinClient tableNumber={team.tableNumber} color={colorHex(team.color)} me={mesa.me} />;
     } else {
       action = (
         <Card tone="warm">
@@ -79,7 +82,7 @@ async function Content({ params }: { params: Promise<{ code: string }> }) {
 
   return (
     <>
-      <p className="px-1 text-sm font-semibold text-ink">Te invitaron a este Team de Ardillas:</p>
+      <p className="px-1 text-sm font-semibold text-ink">Te invitaron a esta mesa:</p>
       <TeamPreview team={team} />
       {action}
     </>
