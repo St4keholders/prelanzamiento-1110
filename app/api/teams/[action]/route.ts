@@ -2,26 +2,20 @@ import { handleError, jsonError, jsonOk, readJson } from "@/lib/http";
 import { getPlayerId } from "@/lib/session";
 import {
   acceptInvite,
-  cancelInvite,
-  createTeam,
   declineInvite,
   getMesaState,
-  inviteToTeam,
-  joinTeam,
   leaveTeam,
-  removeMember,
   saveContact,
   setSquirrel,
+  takeSeat,
   updateTeam,
 } from "@/lib/teams";
 import {
   contactSchema,
   firstIssue,
   teamAcceptSchema,
-  teamCreateSchema,
-  teamIdSchema,
-  teamInviteSchema,
-  teamJoinSchema,
+  teamMoveSchema,
+  teamSeatSchema,
   teamSquirrelSchema,
   teamUpdateSchema,
 } from "@/lib/validation";
@@ -35,17 +29,18 @@ function parse<T extends z.ZodType>(schema: T, body: unknown): z.infer<T> | Resp
 }
 
 const ACTIONS: Record<string, Handler> = {
-  async create(pid, body) {
-    const d = parse(teamCreateSchema, body);
+  /** Entra a una mesa (desde la lista o con el enlace de un amigo). */
+  async seat(pid, body) {
+    const d = parse(teamSeatSchema, body);
     if (d instanceof Response) return d;
     await saveContact(pid, d);
-    await createTeam(pid, d);
+    await takeSeat(pid, d.tableNumber, d.squirrel);
   },
-  async join(pid, body) {
-    const d = parse(teamJoinSchema, body);
+  /** Se cambia de mesa conservando sus datos y su ardilla. */
+  async move(pid, body) {
+    const d = parse(teamMoveSchema, body);
     if (d instanceof Response) return d;
-    await saveContact(pid, d);
-    await joinTeam(pid, d.code, d.squirrel);
+    await takeSeat(pid, d.tableNumber, null);
   },
   async accept(pid, body) {
     const d = parse(teamAcceptSchema, body);
@@ -60,21 +55,6 @@ const ACTIONS: Record<string, Handler> = {
   },
   async decline(pid) {
     await declineInvite(pid);
-  },
-  async invite(pid, body) {
-    const d = parse(teamInviteSchema, body);
-    if (d instanceof Response) return d;
-    await inviteToTeam(pid, d.email, d.fullName);
-  },
-  async "cancel-invite"(pid, body) {
-    const d = parse(teamIdSchema, body);
-    if (d instanceof Response) return d;
-    await cancelInvite(pid, d.id);
-  },
-  async remove(pid, body) {
-    const d = parse(teamIdSchema, body);
-    if (d instanceof Response) return d;
-    await removeMember(pid, d.id);
   },
   async leave(pid) {
     await leaveTeam(pid);

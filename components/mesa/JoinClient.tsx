@@ -8,7 +8,21 @@ import { LookEditor } from "@/components/mesa/LookEditor";
 import { DEFAULT_LOOK } from "@/lib/squirrel-look";
 import type { MyContact } from "@/lib/team-types";
 
-export function JoinClient({ code, color, me }: { code: string; color: string; me: MyContact }) {
+/**
+ * Entra a la mesa del enlace (/m/CÓDIGO). Si ya está en otra mesa (`moving`), solo confirma el
+ * cambio: conserva sus datos y su ardilla.
+ */
+export function JoinClient({
+  tableNumber,
+  color,
+  me,
+  moving = false,
+}: {
+  tableNumber: number;
+  color: string;
+  me: MyContact;
+  moving?: boolean;
+}) {
   const router = useRouter();
   const [squirrel, setSquirrel] = useState(DEFAULT_LOOK);
   const [contact, setContact] = useState(() => contactFrom(me));
@@ -17,17 +31,18 @@ export function JoinClient({ code, color, me }: { code: string; color: string; m
 
   async function join(e: FormEvent) {
     e.preventDefault();
+    if (busy) return;
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/teams/join", {
+      const res = await fetch(`/api/teams/${moving ? "move" : "seat"}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...contact, code, squirrel }),
+        body: JSON.stringify(moving ? { tableNumber } : { ...contact, tableNumber, squirrel }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.message ?? "No pudimos unirte al team.");
+        setError(data.message ?? "No pudimos unirte a la mesa.");
         router.refresh();
         return;
       }
@@ -37,6 +52,21 @@ export function JoinClient({ code, color, me }: { code: string; color: string; m
     } finally {
       setBusy(false);
     }
+  }
+
+  if (moving) {
+    return (
+      <form onSubmit={join} className="space-y-2">
+        {error && <p role="alert" className="text-sm font-bold text-danger">{error}</p>}
+        <button
+          type="submit"
+          disabled={busy}
+          className="w-full rounded-2xl bg-cta px-4 py-3 font-display text-sm font-extrabold uppercase tracking-wide text-white shadow-soft disabled:opacity-50"
+        >
+          {busy ? "Cambiando…" : `Cambiarme a la mesa ${tableNumber}`}
+        </button>
+      </form>
+    );
   }
 
   return (
@@ -54,7 +84,7 @@ export function JoinClient({ code, color, me }: { code: string; color: string; m
         disabled={busy}
         className="w-full rounded-2xl bg-cta px-4 py-3 font-display text-sm font-extrabold uppercase tracking-wide text-white shadow-soft disabled:opacity-50"
       >
-        {busy ? "Uniéndote…" : "Unirme a este team"}
+        {busy ? "Uniéndote…" : `Unirme a la mesa ${tableNumber}`}
       </button>
     </form>
   );

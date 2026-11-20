@@ -7,7 +7,7 @@ export default function UnirmePage() {
       <Card className="space-y-3">
         <h1 className="font-display text-xl font-extrabold text-primary-dark">🔑 Unirme a una mesa</h1>
         <p className="text-sm text-ink">
-          Escribe el código que te pasó el capitán de tu team, o pega el enlace completo.
+          Pega el enlace que te pasó tu amigo, o escribe el código de su mesa.
         </p>
         <JoinCodeForm />
       </Card>

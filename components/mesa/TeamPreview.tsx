@@ -16,7 +16,7 @@ export function TeamPreview({ team }: { team: PublicTeam }) {
         <div className="min-w-0 text-white">
           <p className="text-[11px] font-extrabold uppercase tracking-wider opacity-90">
             Mesa {team.tableNumber}{team.staff ? " · Equipo 1110" : ""} ·{" "}
-            {team.confirmed ? "✅ Confirmada" : `${team.members.length} de ${team.seatsTotal} confirmados`}
+            {team.confirmed ? "✅ Completa" : `${team.members.length} de ${team.seatsTotal} puestos`}
           </p>
           <h2 className="font-display text-xl font-extrabold leading-tight">{team.name}</h2>
           {team.motto && <p className="text-xs font-semibold opacity-95">“{team.motto}”</p>}

@@ -11,12 +11,13 @@ export class TeamError extends Error {
 
 const MESSAGES: Record<string, [string, number]> = {
   reservations_closed: ["Las reservas de mesa no están abiertas en este momento.", 409],
+  already_here: ["Ya estás en esa mesa.", 409],
   already_in_team: ["Ya perteneces a un team. Sal de él primero si quieres cambiarte.", 409],
   table_taken: ["Esa mesa ya la apartó otro team. Escoge otra.", 409],
   table_invalid: ["Esa mesa no existe. Escoge una de la lista.", 400],
   no_tables: ["Ya no quedan mesas disponibles. Pide a un capitán su código para unirte.", 409],
   team_not_found: ["No encontramos un team con ese código. Revísalo e intenta de nuevo.", 404],
-  team_full: ["Este team ya no tiene puestos libres.", 409],
+  team_full: ["Esa mesa ya está llena. Escoge otra.", 409],
   no_invite: ["No tienes invitaciones pendientes.", 404],
   not_captain: ["Solo el capitán del team puede hacer esto.", 403],
   invitee_in_team: ["Esa persona ya pertenece a un team.", 409],
